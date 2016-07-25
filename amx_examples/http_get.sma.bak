@@ -1,0 +1,44 @@
+#include <amxmodx>
+#include <amxmisc>
+#include <curl>
+
+#define CURL_BUFFER_SIZE 512
+
+public plugin_init()
+{
+   register_plugin("PLUGIN curl tests", "VERSION 1.0", "AUTHOR Polarhigh")
+   
+   new data[1]
+   data[0] = fopen("addons/amxmodx/aaa2.txt", "wb")
+   server_print("curl start")
+   
+   new CURL:curl = curl_easy_init()
+   curl_easy_setopt(curl, CURLOPT_BUFFERSIZE, CURL_BUFFER_SIZE)
+   curl_easy_setopt(curl, CURLOPT_URL, "https://forums.alliedmods.net/showthread.php?t=275220")
+   curl_easy_setopt(curl, CURLOPT_WRITEDATA, data[0])
+   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, "write")
+   curl_easy_perform(curl, "complite", data, sizeof(data))
+}
+
+public write(data[], size, nmemb, file)
+{
+   new actual_size = size * nmemb;
+   
+   fwrite_blocks(file, data, actual_size, BLOCK_CHAR)
+   
+   return actual_size
+}
+
+public complite(CURL:curl, CURLcode:code, data[])
+{
+  if(code == CURLE_WRITE_ERROR)
+     server_print("transfer aborted")
+  else
+     server_print("curl complete")
+  
+  fclose(data[0])
+  curl_easy_cleanup(curl)
+}
+/* AMXX-Studio Notes - DO NOT MODIFY BELOW HERE
+*{\\ rtf1\\ ansi\\ deff0{\\ fonttbl{\\ f0\\ fnil Tahoma;}}\n\\ viewkind4\\ uc1\\ pard\\ lang1049\\ f0\\ fs16 \n\\ par }
+*/
