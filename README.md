@@ -13,9 +13,10 @@ And therefore:
 -   You must have installed metamod plugin [SoLoader](https://github.com/Polarhigh/SoLoader/releases) (and it must be written on top addons/metamod/plugins.ini);
 -   And then add lines in addons/soloader/libraries.cfg:
 
-
-    libcrypto.so.1.0.0
-    libssl.so.1.0.0
+```
+libcrypto.so.1.0.0
+libssl.so.1.0.0
+```
 
 # Compilation
 
