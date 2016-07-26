@@ -13,10 +13,9 @@ And therefore:
 -   You must have installed metamod plugin [SoLoader](https://github.com/Polarhigh/SoLoader/releases) (and it must be written on top addons/metamod/plugins.ini);
 -   And then add lines in addons/soloader/libraries.cfg:
 
-```
-libcrypto.so.1.0.0
-libssl.so.1.0.0
-```
+
+    libcrypto.so.1.0.0
+    libssl.so.1.0.0
 
 # Compilation
 
@@ -52,7 +51,7 @@ And now compile:
 
 # Natives
 
-All natives functions you can find in curl.inc, they have the same behaviour that [C functions](https://curl.haxx.se/libcurl/c/).
+All natives functions you can find in [curl.inc](https://github.com/Polarhigh/AmxxCurl/blob/master/amx_includes/curl.inc), they have the same behaviour that [C functions](https://curl.haxx.se/libcurl/c/).
 
 Except for some:
 
