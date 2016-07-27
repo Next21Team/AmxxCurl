@@ -63,8 +63,15 @@ Except for some:
 
     native void:curl_easy_perform(const CURL:handle, const callbackComplite[], const data[] = {}, const data_len = 0)
 
-The function starts executing in new thread, after, callbackComplite will be called. The third and fourth parameters set the addition data that will be sent in the third argument complete callback:
-`public compliteCallback(CURL:curl, CURLcode:code, data[])`
+The function starts curl perform, and upon completion of the transfer will be call callback callbackComplite. In third parameter you can specify an array of user data, wich will be transferred to callbackComplite, and fourth parameter is array length.
+
+If user data set, callback should have the signature:
+
+    public compliteCallback(CURL:curl, CURLcode:code, data[])
+
+else:
+
+    public compliteCallback(CURL:curl, CURLcode:code)
 
 2)
 
