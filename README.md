@@ -70,7 +70,7 @@ The function starts executing in new thread, after, callbackComplite will be cal
 
     native CURLcode:curl_easy_getinfo(const CURL:handle, const CURLINFO:info, any:...)
 
-For string type of CURLINFO function, you must set fourth argument - string size:
+For string type of CURLINFO option, you must set fourth argument - string size:
 
     new url[64]
     curl_easy_getinfo(curl,CURLINFO_EFFECTIVE_URL, url, charsmax(url))
