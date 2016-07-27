@@ -302,22 +302,22 @@ private:
     static int GetInterruptCodeForCurlCallback(CURLoption callback_option)
     {
         switch (callback_option) {
-        case CURLOPT_WRITEFUNCTION:			return 0;
-        case CURLOPT_READFUNCTION:			return CURL_READFUNC_ABORT;
-        case CURLOPT_IOCTLFUNCTION:			return CURLIOE_UNKNOWNCMD;
-        case CURLOPT_SEEKFUNCTION:			return 1;
-        case CURLOPT_SOCKOPTFUNCTION:		return 1;
-        case CURLOPT_OPENSOCKETFUNCTION:	return CURL_SOCKET_BAD;
-        case CURLOPT_CLOSESOCKETFUNCTION:	return 1;
-        case CURLOPT_PROGRESSFUNCTION:		return 1;
-        case CURLOPT_XFERINFOFUNCTION:		return 1;
-        case CURLOPT_HEADERFUNCTION:		return 0;
-        case CURLOPT_DEBUGFUNCTION:			return 1; // ??
-        case CURLOPT_SSL_CTX_FUNCTION:		return CURLE_GOT_NOTHING;
-        case CURLOPT_INTERLEAVEFUNCTION:	return 0; // ??
-        case CURLOPT_CHUNK_BGN_FUNCTION:	return CURL_CHUNK_BGN_FUNC_FAIL;
-        case CURLOPT_CHUNK_END_FUNCTION:	return CURL_CHUNK_END_FUNC_FAIL;
-        case CURLOPT_FNMATCH_FUNCTION:		return CURL_FNMATCHFUNC_FAIL;
+        case CURLOPT_WRITEFUNCTION:         return 0;
+        case CURLOPT_READFUNCTION:          return CURL_READFUNC_ABORT;
+        case CURLOPT_IOCTLFUNCTION:         return CURLIOE_UNKNOWNCMD;
+        case CURLOPT_SEEKFUNCTION:          return 1;
+        case CURLOPT_SOCKOPTFUNCTION:       return 1;
+        case CURLOPT_OPENSOCKETFUNCTION:    return CURL_SOCKET_BAD;
+        case CURLOPT_CLOSESOCKETFUNCTION:   return 1;
+        case CURLOPT_PROGRESSFUNCTION:      return 1;
+        case CURLOPT_XFERINFOFUNCTION:      return 1;
+        case CURLOPT_HEADERFUNCTION:        return 0;
+        case CURLOPT_DEBUGFUNCTION:         return 1; // ??
+        case CURLOPT_SSL_CTX_FUNCTION:      return CURLE_GOT_NOTHING;
+        case CURLOPT_INTERLEAVEFUNCTION:    return 0; // ??
+        case CURLOPT_CHUNK_BGN_FUNCTION:    return CURL_CHUNK_BGN_FUNC_FAIL;
+        case CURLOPT_CHUNK_END_FUNCTION:    return CURL_CHUNK_END_FUNC_FAIL;
+        case CURLOPT_FNMATCH_FUNCTION:      return CURL_FNMATCHFUNC_FAIL;
 
         default:
             throw std::runtime_error("Invalid option");

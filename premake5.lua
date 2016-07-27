@@ -1,15 +1,15 @@
 -- Clean Function --
 newaction {
-   trigger     = "clean",
-   description = "clean the software",
-   execute     = function ()
+  trigger     = "clean",
+  description = "clean the software",
+    execute     = function ()
       print("clean the build...")
       os.rmdir("./build")
       os.rmdir("./bin")
       os.rmdir("./obj")
-	  os.rmdir("./.vs")
+      os.rmdir("./.vs")
       print("done.")
-   end
+  end
 }
 
 -- workspace --
@@ -34,10 +34,11 @@ workspace "AmxxCurl"
   filter { "system:windows", "configurations:ReleaseDLL" }
     flags { "NoIncrementalLink", "LinkTimeOptimization" }
 
-  defines {
-    "HAVE_STDINT_H", -- prevent C2371 for int32_t in amxmodx
-    "CURL_STATICLIB"
-  }
+  filter "configurations:*"
+    defines {
+      "HAVE_STDINT_H", -- prevent C2371 for int32_t in amxmodx
+      "CURL_STATICLIB"
+    }
 
 project "AmxxCurl"
   targetname  "amxxcurl_amxx_i386"

@@ -200,22 +200,22 @@ public:
     static void* GetMethodPointerForCallbackOption(CURLoption callback_option)
     {
         switch (callback_option) {
-        case CURLOPT_WRITEFUNCTION:			return reinterpret_cast<void*>(WriteCallbackStatic);
-        case CURLOPT_READFUNCTION:			return reinterpret_cast<void*>(ReadCallbackStatic);
-        case CURLOPT_IOCTLFUNCTION:			return reinterpret_cast<void*>(IoctlCallbackStatic);
-        case CURLOPT_SEEKFUNCTION:			return reinterpret_cast<void*>(SeekCallbackStatic);
-        case CURLOPT_SOCKOPTFUNCTION:		return reinterpret_cast<void*>(SockoptCallbackStatic);
-        case CURLOPT_OPENSOCKETFUNCTION:	return reinterpret_cast<void*>(OpensocketCallbackStatic);
-        case CURLOPT_CLOSESOCKETFUNCTION:	return reinterpret_cast<void*>(ClosesocketCallbackStatic);
-        case CURLOPT_PROGRESSFUNCTION:		return reinterpret_cast<void*>(ProgressCallbackStatic);
-        case CURLOPT_XFERINFOFUNCTION:		return reinterpret_cast<void*>(ProgressCallbackxStatic);
-        case CURLOPT_HEADERFUNCTION:		return reinterpret_cast<void*>(HeaderCallbackStatic);
-        case CURLOPT_DEBUGFUNCTION:			return reinterpret_cast<void*>(DebugCallbackStatic);
-        case CURLOPT_SSL_CTX_FUNCTION:		return reinterpret_cast<void*>(SslCtxCallbackStatic);
-        case CURLOPT_INTERLEAVEFUNCTION:	return reinterpret_cast<void*>(InterleaveCallbackStatic);
-        case CURLOPT_CHUNK_BGN_FUNCTION:	return reinterpret_cast<void*>(ChunkBgnCallbackStatic);
-        case CURLOPT_CHUNK_END_FUNCTION:	return reinterpret_cast<void*>(ChunkEndCallbackStatic);
-        case CURLOPT_FNMATCH_FUNCTION:		return reinterpret_cast<void*>(FnmatchCallbackStatic);
+        case CURLOPT_WRITEFUNCTION:         return reinterpret_cast<void*>(WriteCallbackStatic);
+        case CURLOPT_READFUNCTION:          return reinterpret_cast<void*>(ReadCallbackStatic);
+        case CURLOPT_IOCTLFUNCTION:         return reinterpret_cast<void*>(IoctlCallbackStatic);
+        case CURLOPT_SEEKFUNCTION:          return reinterpret_cast<void*>(SeekCallbackStatic);
+        case CURLOPT_SOCKOPTFUNCTION:       return reinterpret_cast<void*>(SockoptCallbackStatic);
+        case CURLOPT_OPENSOCKETFUNCTION:    return reinterpret_cast<void*>(OpensocketCallbackStatic);
+        case CURLOPT_CLOSESOCKETFUNCTION:   return reinterpret_cast<void*>(ClosesocketCallbackStatic);
+        case CURLOPT_PROGRESSFUNCTION:      return reinterpret_cast<void*>(ProgressCallbackStatic);
+        case CURLOPT_XFERINFOFUNCTION:      return reinterpret_cast<void*>(ProgressCallbackxStatic);
+        case CURLOPT_HEADERFUNCTION:        return reinterpret_cast<void*>(HeaderCallbackStatic);
+        case CURLOPT_DEBUGFUNCTION:         return reinterpret_cast<void*>(DebugCallbackStatic);
+        case CURLOPT_SSL_CTX_FUNCTION:      return reinterpret_cast<void*>(SslCtxCallbackStatic);
+        case CURLOPT_INTERLEAVEFUNCTION:    return reinterpret_cast<void*>(InterleaveCallbackStatic);
+        case CURLOPT_CHUNK_BGN_FUNCTION:    return reinterpret_cast<void*>(ChunkBgnCallbackStatic);
+        case CURLOPT_CHUNK_END_FUNCTION:    return reinterpret_cast<void*>(ChunkEndCallbackStatic);
+        case CURLOPT_FNMATCH_FUNCTION:      return reinterpret_cast<void*>(FnmatchCallbackStatic);
         default:
             throw std::runtime_error("Unsupported callback option");
         }
@@ -224,22 +224,22 @@ public:
     static CURLoption GetDataOptionForCallbackOption(CURLoption callback_option)
     {
         switch (callback_option) {
-        case CURLOPT_WRITEFUNCTION:			return CURLOPT_WRITEDATA;
-        case CURLOPT_READFUNCTION:			return CURLOPT_READDATA;
-        case CURLOPT_IOCTLFUNCTION:			return CURLOPT_IOCTLDATA;
-        case CURLOPT_SEEKFUNCTION:			return CURLOPT_SEEKDATA;
-        case CURLOPT_SOCKOPTFUNCTION:		return CURLOPT_SOCKOPTDATA;
-        case CURLOPT_OPENSOCKETFUNCTION:	return CURLOPT_OPENSOCKETDATA;
-        case CURLOPT_CLOSESOCKETFUNCTION:	return CURLOPT_CLOSESOCKETDATA;
-        case CURLOPT_PROGRESSFUNCTION:		return CURLOPT_PROGRESSDATA;
-        case CURLOPT_XFERINFOFUNCTION:		return CURLOPT_XFERINFODATA;
-        case CURLOPT_HEADERFUNCTION:		return CURLOPT_HEADERDATA;
-        case CURLOPT_DEBUGFUNCTION:			return CURLOPT_DEBUGDATA;
-        case CURLOPT_SSL_CTX_FUNCTION:		return CURLOPT_SSL_CTX_DATA;
-        case CURLOPT_INTERLEAVEFUNCTION:	return CURLOPT_INTERLEAVEDATA;
-        case CURLOPT_CHUNK_BGN_FUNCTION:	return CURLOPT_CHUNK_DATA;
-        case CURLOPT_CHUNK_END_FUNCTION:	return CURLOPT_CHUNK_DATA;
-        case CURLOPT_FNMATCH_FUNCTION:		return CURLOPT_FNMATCH_DATA;
+        case CURLOPT_WRITEFUNCTION:         return CURLOPT_WRITEDATA;
+        case CURLOPT_READFUNCTION:          return CURLOPT_READDATA;
+        case CURLOPT_IOCTLFUNCTION:         return CURLOPT_IOCTLDATA;
+        case CURLOPT_SEEKFUNCTION:          return CURLOPT_SEEKDATA;
+        case CURLOPT_SOCKOPTFUNCTION:       return CURLOPT_SOCKOPTDATA;
+        case CURLOPT_OPENSOCKETFUNCTION:    return CURLOPT_OPENSOCKETDATA;
+        case CURLOPT_CLOSESOCKETFUNCTION:   return CURLOPT_CLOSESOCKETDATA;
+        case CURLOPT_PROGRESSFUNCTION:      return CURLOPT_PROGRESSDATA;
+        case CURLOPT_XFERINFOFUNCTION:      return CURLOPT_XFERINFODATA;
+        case CURLOPT_HEADERFUNCTION:        return CURLOPT_HEADERDATA;
+        case CURLOPT_DEBUGFUNCTION:         return CURLOPT_DEBUGDATA;
+        case CURLOPT_SSL_CTX_FUNCTION:      return CURLOPT_SSL_CTX_DATA;
+        case CURLOPT_INTERLEAVEFUNCTION:    return CURLOPT_INTERLEAVEDATA;
+        case CURLOPT_CHUNK_BGN_FUNCTION:    return CURLOPT_CHUNK_DATA;
+        case CURLOPT_CHUNK_END_FUNCTION:    return CURLOPT_CHUNK_DATA;
+        case CURLOPT_FNMATCH_FUNCTION:      return CURLOPT_FNMATCH_DATA;
         default:
             throw std::runtime_error("Unsupported callback option");
         }

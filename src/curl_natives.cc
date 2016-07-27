@@ -15,11 +15,18 @@ static cell AMX_NATIVE_CALL amx_curl_easy_escape(AMX* amx, cell* params)
 
     AmxCurlTaskManager::CurlTaskHandle curl_handle = params[1];
 
-    std::string escaped_str;
-    char* str_to_escape = MF_GetAmxString(amx, params[2], 0, &g_len);
-    manager.CurlEscapeUrl(curl_handle, str_to_escape, escaped_str);
+    try
+    {
+        std::string escaped_str;
+        char* str_to_escape = MF_GetAmxString(amx, params[2], 0, &g_len);
+        manager.CurlEscapeUrl(curl_handle, str_to_escape, escaped_str);
 
-    MF_SetAmxString(amx, params[3], escaped_str.c_str(), params[4]);
+        MF_SetAmxString(amx, params[3], escaped_str.c_str(), params[4]);
+    }
+    catch(const CurlAmxManagerInvalidHandleException&)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid curl handle");
+    }
 
     return 0;
 }
@@ -29,18 +36,28 @@ static cell AMX_NATIVE_CALL amx_curl_easy_escape(AMX* amx, cell* params)
 // params[3]							str ref | escaped url
 // params[4]		int len				cell | размер дестенейшн массива
 // ret				int new_len			cell | реальный размер нового массива
-static cell AMX_NATIVE_CALL amx_curl_easy_unescape(AMX* amx, cell* params) {
+static cell AMX_NATIVE_CALL amx_curl_easy_unescape(AMX* amx, cell* params)
+{
     AmxCurlTaskManager& manager = AmxCurlController::Instance().get_curl_tasks_manager();
 
     AmxCurlTaskManager::CurlTaskHandle curl_handle = params[1];
 
-    std::string unescaped_str;
-    char* str_to_unescape = MF_GetAmxString(amx, params[2], 0, &g_len);
-    manager.CurlEscapeUrl(curl_handle, str_to_unescape, unescaped_str);
+    try
+    {
+        std::string unescaped_str;
+        char* str_to_unescape = MF_GetAmxString(amx, params[2], 0, &g_len);
+        manager.CurlEscapeUrl(curl_handle, str_to_unescape, unescaped_str);
 
-    MF_SetAmxString(amx, params[3], unescaped_str.c_str(), params[4]);
+        MF_SetAmxString(amx, params[3], unescaped_str.c_str(), params[4]);
 
-    return unescaped_str.size();
+        return unescaped_str.size();
+    }
+    catch (const CurlAmxManagerInvalidHandleException&)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid curl handle");
+    }
+
+    return 0;
 }
 
 // ret              CURL                cell
@@ -143,42 +160,53 @@ static cell AMX_NATIVE_CALL amx_curl_easy_getinfo(AMX* amx, cell* params)
 
     int curlinfo_mask = curl_info & CURLINFO_TYPEMASK;
 
-    if (curlinfo_mask == CURLINFO_STRING)
+    try
     {
-        char* str;
-        ret_code = manager.CurlGetInfo(curl_handle, curl_info, str);
+        if (curlinfo_mask == CURLINFO_STRING)
+        {
+            char* str;
+            ret_code = manager.CurlGetInfo(curl_handle, curl_info, str);
 
-        if (ret_code == CURLE_OK)
-            MF_SetAmxString(amx, params[3], str, params[4]);
+            if (ret_code == CURLE_OK)
+                MF_SetAmxString(amx, params[3], str, params[4]);
+        }
+        else if (curlinfo_mask == CURLINFO_LONG || curlinfo_mask == CURLINFO_SOCKET)
+        {
+            long num;
+            ret_code = manager.CurlGetInfo(curl_handle, curl_info, num);
+
+            cell* ret = MF_GetAmxAddr(amx, params[3]);
+            *ret = num;
+        }
+        else if (curlinfo_mask == CURLINFO_DOUBLE)
+        {
+            double num;
+            ret_code = manager.CurlGetInfo(curl_handle, curl_info, num);
+
+            cell* ret = MF_GetAmxAddr(amx, params[3]);
+            *ret = amx_ftoc(num);
+        }
+        else if (curlinfo_mask == CURLINFO_SLIST) {
+            curl_slist* csl;
+            ret_code = manager.CurlGetInfo(curl_handle, curl_info, csl);
+
+            cell* ret = MF_GetAmxAddr(amx, params[3]);
+            *ret = reinterpret_cast<cell>(csl);
+        }
+        else
+        {
+            MF_LogError(amx, AMX_ERR_NATIVE, "Invalid CURLINFO");
+            return 0;
+        }
+
+        return static_cast<cell>(ret_code);
     }
-    else if (curlinfo_mask == CURLINFO_LONG)
+    catch(const CurlAmxManagerInvalidHandleException&)
     {
-        long num;
-        ret_code = manager.CurlGetInfo(curl_handle, curl_info, num);
-
-        cell* ret = MF_GetAmxAddr(amx, params[3]);
-        *ret = num;
-    }
-    else if (curlinfo_mask == CURLINFO_DOUBLE)
-    {
-        double num;
-        ret_code = manager.CurlGetInfo(curl_handle, curl_info, num);
-
-        cell* ret = MF_GetAmxAddr(amx, params[3]);
-        *ret = amx_ftoc(num);
-    }
-    else if (curlinfo_mask == CURLINFO_SLIST) {
-        curl_slist* csl;
-        ret_code = manager.CurlGetInfo(curl_handle, curl_info, csl);
-
-        cell* ret = MF_GetAmxAddr(amx, params[3]);
-        *ret = reinterpret_cast<cell>(csl);
-    }
-    else {
-        return -1;
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid curl handle");
     }
 
-    return static_cast<cell>(ret_code);
+    return 0;
 }
 
 // params[1]		CURL  handle		cell
@@ -199,7 +227,16 @@ static cell AMX_NATIVE_CALL amx_curl_easy_perform(AMX* amx, cell* params)
         MF_CopyAmxMemory(data, MF_GetAmxAddr(amx, params[3]), data_len);
     }
 
-    manager.CurlPerformTask(curl_handle, MF_GetAmxString(amx, params[2], 0, &g_len), data, data_len);
+    try
+    {
+        manager.CurlPerformTask(curl_handle, MF_GetAmxString(amx, params[2], 0, &g_len), data, data_len);
+    }
+    catch (const CurlAmxManagerInvalidHandleException&)
+    {
+        delete[] data;
+
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid curl handle");
+    }
 
     return 0;
 }
@@ -210,7 +247,15 @@ static cell AMX_NATIVE_CALL amx_curl_easy_cleanup(AMX* amx, cell* params)
     AmxCurlTaskManager& manager = AmxCurlController::Instance().get_curl_tasks_manager();
 
     AmxCurlTaskManager::CurlTaskHandle curl_handle = params[1];
-    manager.RemoveTask(curl_handle);
+
+    try
+    {
+        manager.RemoveTask(curl_handle);
+    }
+    catch (const CurlAmxManagerInvalidHandleException&)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid curl handle");
+    }
 
     return 0;
 }
@@ -221,7 +266,15 @@ static cell AMX_NATIVE_CALL amx_curl_easy_reset(AMX* amx, cell* params)
     AmxCurlTaskManager& manager = AmxCurlController::Instance().get_curl_tasks_manager();
 
     AmxCurlTaskManager::CurlTaskHandle curl_handle = params[1];
-    manager.CurlReset(curl_handle);
+
+    try
+    {
+        manager.CurlReset(curl_handle);
+    }
+    catch (const CurlAmxManagerInvalidHandleException&)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid curl handle");
+    }
 
     return 0;
 }
@@ -307,11 +360,6 @@ static cell AMX_NATIVE_CALL amx_curl_version(AMX* amx, cell* params)
     MF_SetAmxString(amx, params[1], curl_version(), params[2]);
 
     return 0;
-}
-
-static cell AMX_NATIVE_CALL amx_curl_set_on_change_map_behaviour(AMX* amx, cell* params)
-{
-
 }
 
 AMX_NATIVE_INFO g_amx_curl_natives[] =

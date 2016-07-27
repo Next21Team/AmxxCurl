@@ -23,7 +23,7 @@ libssl.so.1.0.0
 
 You must have installed the latest version premake5. ([Get it here](https://github.com/premake/premake-core))
 
-**IMPORTANT**: You need to compile premake5 from git sources, because premake-5.0.0-alpha9 not support some options (_linkgroups_ and _symbols_, if you do not wont to compile it under windows, just comment line 69 and replace `symbols "On"` to `flags {"Symbols"}` on line 27 in premake5.lua)
+**IMPORTANT**: You need to compile premake5 from git sources, because premake-5.0.0-alpha9 not support some options (_linkgroups_ and _symbols_, if you do not wont to compile it under windows, just comment line 70 (`linkgroups "On"`) and replace `symbols "On"` to `flags {"Symbols"}` on line 27 in premake5.lua)
 
 ## Windows
 
@@ -59,10 +59,21 @@ All natives functions you can find in [curl.inc](https://github.com/Polarhigh/Am
 
 Except for some:
 
+1)
+
     native void:curl_easy_perform(const CURL:handle, const callbackComplite[], const data[] = {}, const data_len = 0)
 
 The function starts executing in new thread, after, callbackComplite will be called. The third and fourth parameters set the addition data that will be sent in the third argument complete callback:
 `public compliteCallback(CURL:curl, CURLcode:code, data[])`
+
+2)
+
+    native CURLcode:curl_easy_getinfo(const CURL:handle, const CURLINFO:info, any:...)
+
+For string type of CURLINFO function, you must set fourth argument - string size:
+
+    new url[64]
+    curl_easy_getinfo(curl,CURLINFO_EFFECTIVE_URL, url, charsmax(url))
 
 # Other
 
