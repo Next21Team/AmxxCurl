@@ -13,6 +13,7 @@ And therefore:
 -   You must have installed metamod plugin [SoLoader](https://github.com/Polarhigh/SoLoader/releases) (and it must be written on top addons/metamod/plugins.ini);
 -   And then add lines in addons/soloader/libraries.cfg:
 
+
 ```
 libcrypto.so.1.0.0
 libssl.so.1.0.0
@@ -21,6 +22,8 @@ libssl.so.1.0.0
 # Compilation
 
 You must have installed the latest version premake5. ([Get it here](https://github.com/premake/premake-core))
+
+**IMPORTANT**: You need to compile premake5 from git sources, because premake-5.0.0-alpha9 not support some options (_linkgroups_ and _symbols_, if you do not wont to compile it under windows, just comment line 69 and replace `symbols "On"` to `flags {"Symbols"}` on line 27 in premake5.lua)
 
 ## Windows
 
