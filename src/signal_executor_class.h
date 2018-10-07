@@ -5,8 +5,7 @@
 
 #include "execution_queue_interface.h"
 
-// RAII хелпер для очереди потоков. 
-// При создании ставит текущий поток в ожидание, при разрушении оповещает очередь о завершении выполнения критического участка.
+// RAII helper for ExecutionQueueInterface.
 class SignalExecutor
 {
 public:
@@ -14,11 +13,7 @@ public:
         execution_queue_(execution_queue),
         notified_(false)
     {
-        execution_queue_.WaitSignal(condition_variable_, notified_);
-
-        std::unique_lock<std::mutex> lock(mutex_);
-        while (!notified_)
-            condition_variable_.wait(lock);
+        execution_queue_.WaitSignal();
     }
 
     ~SignalExecutor()
@@ -30,7 +25,6 @@ private:
     ExecutionQueueInterface& execution_queue_;
 
     bool notified_;
-    std::mutex mutex_;
     std::condition_variable condition_variable_;
 };
 

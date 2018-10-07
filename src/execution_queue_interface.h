@@ -15,7 +15,7 @@ class ExecutionQueueInterface
 {
 public:
     // Ставит текущий поток в ожидание сигнала, оповещение происходит через condition_variable и notify
-    virtual void WaitSignal(std::condition_variable& condition_variable, bool& notify) = 0;
+    virtual void WaitSignal() = 0;
 
     // Поток должен оповестить очередь о завершении выполнения критического участка
     virtual void Executed() = 0;

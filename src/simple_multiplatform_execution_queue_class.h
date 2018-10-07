@@ -6,14 +6,13 @@
 
 #include "execution_queue_interface.h"
 
-// Стандартная мультиплатформенная реализация (и скорее всего медленная :p) очереди потоков
 class SimpleMultiplatformExecutionQueue : public ExecutionQueueInterface
 {
     struct ThreadData
     {
         ThreadData(std::condition_variable& condition_variable, bool& notify)
             : condition_variable(condition_variable),
-              notify(notify)
+            notify(notify)
         { }
 
         std::condition_variable& condition_variable;
@@ -25,17 +24,26 @@ public:
         executed_(false)
     { }
 
-    void WaitSignal(std::condition_variable& condition_variable, bool& notify) override
+    void WaitSignal() override
     {
-        std::lock_guard<std::mutex> lock(queue_mutex_);
+        std::condition_variable cv;
+        bool notify = false;
 
-        threads_queue_.emplace(ThreadData(condition_variable, notify));
+        {
+            std::lock_guard<std::mutex> lock(queue_mutex_);
+            threads_queue_.emplace(ThreadData(cv, notify));
+        }
+
+        std::unique_lock<std::mutex> lock(mutex_thread_signal_);
+        while (!notify)
+            cv.wait(lock);
     }
 
     void Executed() override
     {
+        std::unique_lock<std::mutex> lock(mutex_thread_executed_);
         executed_ = true;
-        cv_executed_.notify_one();
+        cv_thread_executed_.notify_one();
     }
 
 
@@ -45,17 +53,19 @@ public:
 
         while (!threads_queue_.empty())
         {
-            std::unique_lock<std::mutex> lock_exec(mutex_executed_);
+            {
+                std::unique_lock<std::mutex> lock(mutex_thread_signal_);
 
-            ThreadData data = threads_queue_.front();
-            data.notify = true;
-            data.condition_variable.notify_one();
+                ThreadData& thread_data = threads_queue_.front();
+                thread_data.notify = true;
+                thread_data.condition_variable.notify_one();
 
-            threads_queue_.pop();
+                threads_queue_.pop();
+            }
 
-            // ожидание вызова Executed() из потока
+            std::unique_lock<std::mutex> lock(mutex_thread_executed_);
             while (!executed_)
-                cv_executed_.wait(lock_exec);
+                cv_thread_executed_.wait(lock);
             executed_ = false;
         }
     }
@@ -64,8 +74,9 @@ private:
     std::queue<ThreadData> threads_queue_;
 
     bool executed_;
-    std::mutex mutex_executed_;
-    std::condition_variable cv_executed_;
+    std::mutex mutex_thread_signal_;
+    std::mutex mutex_thread_executed_;
+    std::condition_variable cv_thread_executed_;
 
     std::mutex queue_mutex_;
 };
