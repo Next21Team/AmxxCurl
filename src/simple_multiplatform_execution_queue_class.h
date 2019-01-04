@@ -31,7 +31,7 @@ public:
 
         {
             std::lock_guard<std::mutex> lock(queue_mutex_);
-            threads_queue_.emplace(ThreadData(cv, notify));
+            threads_queue_.emplace(cv, notify);
         }
 
         std::unique_lock<std::mutex> lock(mutex_thread_signal_);

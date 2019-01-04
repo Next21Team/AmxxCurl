@@ -10,8 +10,7 @@ class SignalExecutor
 {
 public:
     SignalExecutor(ExecutionQueueInterface& execution_queue) :
-        execution_queue_(execution_queue),
-        notified_(false)
+        execution_queue_(execution_queue)
     {
         execution_queue_.WaitSignal();
     }
@@ -23,9 +22,6 @@ public:
 
 private:
     ExecutionQueueInterface& execution_queue_;
-
-    bool notified_;
-    std::condition_variable condition_variable_;
 };
 
 #endif // !_SIGNAL_EXECUTOR_H_
