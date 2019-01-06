@@ -16,12 +16,15 @@ newaction {
 workspace "AmxxCurl"
   location ("build/" .. _ACTION)
   configurations { "ReleaseDLL", "DebugDLL" }
-
-  flags { "No64BitChecks", "StaticRuntime", "MultiProcessorCompile", "C++14" }
+  staticruntime "On"
+  architecture "x86"
+  cppdialect "C++14"
+  
   characterset("MBCS") -- use multibyte character set in msvs
 
   -- flags & options --
-
+  flags { "No64BitChecks", "MultiProcessorCompile" }
+  
   filter "configurations:DebugDLL"
     defines { "DEBUG", "_DEBUG" }
     symbols "On"
@@ -33,6 +36,9 @@ workspace "AmxxCurl"
 
   filter { "system:windows", "configurations:ReleaseDLL" }
     flags { "NoIncrementalLink", "LinkTimeOptimization" }
+	
+  filter { "system:windows" }
+    systemversion "latest"
 
   filter "configurations:*"
     defines {
@@ -52,26 +58,29 @@ project "AmxxCurl"
     os.getenv("HLSDK") .. "/public",
     os.getenv("METAMOD"),
   }
-
+  
   -- src, includes & libs --
-
-  links { "zlib-lib", "curl-lib" }
-  includedirs { "contrib/zlib", "contrib/curl/include" }
-
   files { "src/**.h", "src/**.cc", "src/sdk/**.cpp" }
-  excludes { "contrib/**.*" }
+  includedirs { "deps/include" }
 
+  libdirs { "deps/lib" }
+  
   --
   filter "system:windows"
-    links { "Ws2_32" }
+    links { "Ws2_32", "Crypt32", "Wldap32", "Normaliz", "zlib_a", "libcurl_a" }
 
   filter "system:linux"
+    links { "pthread" }
     toolset "gcc"
     linkgroups "On"
-    buildoptions { "-fpermissive" } -- and therefore clang not supported
-    linkoptions { "-static-libstdc++" }
+    buildoptions { "-fpermissive" }
+    linkoptions { "-static-libgcc -static-libstdc++ -Wl,--start-group " .. path.getabsolute("deps/lib/libcrypto.a") .. " " .. path.getabsolute("deps/lib/libssl.a") .. " " .. path.getabsolute("deps/lib/libcurl.a") .. " " ..  path.getabsolute("deps/lib/libz.a") .. " -Wl,--end-group" }
 
--- 3rd party
-group "contrib"
-  include   "contrib/zlib"
-  include   "contrib/curl"
+--[[ 
+bild libcurl win:
+1. run buildconf.bat
+2. run developer command promt for vs
+3. cd winbuild
+4. nmake /f Makefile.vc mode=static VC=15 WITH_ZLIB=static ENABLE_SSPI=yes ENABLE_IPV6=yes ENABLE_IDN=yes ENABLE_WINSSL=yes GEN_PDB=no DEBUG=no RTLIBCFG=static MACHINE=x86 ZLIB_PATH=../../../deps
+
+--]]
