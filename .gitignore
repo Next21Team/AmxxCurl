@@ -1,3 +1,4 @@
 .atom-build.json
 bin/
 build/
+deps/
