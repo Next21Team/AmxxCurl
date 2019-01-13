@@ -5,7 +5,10 @@
 #include "amx_curl_callback_class.h"
 #include "simple_multiplatform_execution_queue_class.h"
 
-// Класс агрегирует Curl и CurlCallbackAmxProxy, позволяет запустить передачу курл в отдельном потоке
+#if AMXXCURL_USE_PTHREADS_EXPLICITLY
+#include <pthread.h>
+#endif
+
 class AmxCurlTask
 {
     using AmxCallback = int;
@@ -19,40 +22,29 @@ public:
         thread_active_(false)
     { }
 
-    // начинает передачу curl в новом потоке, по окончанию исполнения будет вызван amx колбэк complete_callback
-    // аргумент handle - ссылка на curl в менеджере, будет передана в колбэк
     void PerformTask(const char* complete_callback, int handle, cell* data, int data_len)
     {
         if (!thread_active_)
         {
             thread_active_ = true;
 
-            AmxCallback callback;
             if(data != nullptr)
-                callback = MF_RegisterSPForwardByName(amx_, complete_callback, FP_CELL /* handle */, FP_CELL /* CURLcode */, FP_ARRAY /* data */, FP_DONE);
+                amx_callback_ = MF_RegisterSPForwardByName(amx_, complete_callback, FP_CELL /* handle */, FP_CELL /* CURLcode */, FP_ARRAY /* data */, FP_DONE);
             else
-                callback = MF_RegisterSPForwardByName(amx_, complete_callback, FP_CELL /* handle */, FP_CELL /* CURLcode */, FP_DONE);
+                amx_callback_ = MF_RegisterSPForwardByName(amx_, complete_callback, FP_CELL /* handle */, FP_CELL /* CURLcode */, FP_DONE);
+            
+            curl_manager_handle_ = handle;
+            amx_callback_data_ = data;
+            amx_callback_data_len_ = data_len;
 
-
-            std::thread thread = std::thread([this, callback, handle, data, data_len]()
-            {
-                CURLcode result = curl_.Perform();
-
-                // синхронизация с главным потоком
-                SignalExecutor executor(execution_queue_);
-                thread_active_ = false; // далее объект AmxCurlTask может быть уничтожен из amx колбэка
-
-                if (data != nullptr)
-                {
-                    MF_ExecuteForward(callback, handle, result, MF_PrepareCellArray(data, data_len));
-                    delete[] data;
-                }
-                else
-                    MF_ExecuteForward(callback, handle, result);
-
-                MF_UnregisterSPForward(callback);
-            });
+#if AMXXCURL_USE_PTHREADS_EXPLICITLY
+            pthread_attr_init(&pthread_attr_);
+            pthread_create(&pthread_, &pthread_attr_, ThreadFunctionStatic, this);
+            pthread_detach(pthread_);
+#else
+            auto thread = std::thread(ThreadFunctionStatic, this);
             thread.detach();
+#endif
         }
         else
             throw std::runtime_error("Curl thread already started");
@@ -65,12 +57,55 @@ public:
     bool is_thread_active() const { return thread_active_; }
 
 private:
+    void ThreadFunction()
+    {
+        CURLcode result = curl_.Perform();
+
+        SignalExecutor executor(execution_queue_);
+
+        thread_active_ = false;
+
+        if (amx_callback_data_ != nullptr)
+        {
+            MF_ExecuteForward(amx_callback_, curl_manager_handle_, result, MF_PrepareCellArray(amx_callback_data_, amx_callback_data_len_));
+            delete[] amx_callback_data_;
+        }
+        else
+            MF_ExecuteForward(amx_callback_, curl_manager_handle_, result);
+
+        MF_UnregisterSPForward(amx_callback_);
+    }
+    
+#if AMXXCURL_USE_PTHREADS_EXPLICITLY
+    static void* ThreadFunctionStatic(void* threadData)
+    {
+        reinterpret_cast<AmxCurlTask*>(threadData)->ThreadFunction();
+        pthread_exit(0);
+    }
+#else
+    static void ThreadFunctionStatic(void* threadData)
+    {
+        reinterpret_cast<AmxCurlTask*>(threadData)->ThreadFunction();
+    }
+#endif
+
+private:
     AMX* amx_;
     ExecutionQueueInterface& execution_queue_;
     std::shared_ptr<CurlCallbackAmx> curl_callback_;
     Curl curl_;
-
     bool thread_active_;
+
+    AmxCallback amx_callback_;
+    int curl_manager_handle_;
+    cell* amx_callback_data_;
+    int amx_callback_data_len_;
+
+
+#if AMXXCURL_USE_PTHREADS_EXPLICITLY
+    pthread_t pthread_;
+    pthread_attr_t pthread_attr_;
+#endif
 };
 
 #endif // _AMX_CURL_TASK_CLASS_H_

@@ -2,6 +2,7 @@
 #define _AMX_CURL_CONTROLLER_H_
 
 #include "amx_curl_task_manager_class.h"
+#include "pthread_execution_queue.h"
 
 class AmxCurlController
 {
@@ -24,11 +25,19 @@ public:
     }
 
 private:
+#if AMXXCURL_USE_PTHREADS_EXPLICITLY
+    AmxCurlController() :
+        execution_queue_(std::make_unique<PthreadExecutionQueue>()),
+        curl_task_manager_(*execution_queue_)
+    {
+    }
+#else
     AmxCurlController() :
         execution_queue_(std::make_unique<SimpleMultiplatformExecutionQueue>()),
         curl_task_manager_(*execution_queue_)
     {
     }
+#endif
 
     AmxCurlController(const AmxCurlController& root);
     AmxCurlController& operator=(const AmxCurlController&);

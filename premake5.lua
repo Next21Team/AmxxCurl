@@ -61,20 +61,32 @@ project "AmxxCurl"
   
   -- src, includes & libs --
   files { "src/**.h", "src/**.cc", "src/sdk/**.cpp" }
-  includedirs { "deps/include" }
 
-  libdirs { "deps/lib" }
-  
+  filter "configurations:ReleaseDLL"
+    includedirs { "deps/Release/include" }
+	libdirs { "deps/Release/lib" }
+
+  filter "configurations:DebugDLL"
+    includedirs { "deps/Release/include" }
+	libdirs { "deps/Debug/lib" }
+
   --
   filter "system:windows"
     links { "Ws2_32", "Crypt32", "Wldap32", "Normaliz", "zlib_a", "libcurl_a" }
 
   filter "system:linux"
+    defines "AMXXCURL_USE_PTHREADS_EXPLICITLY"
     links { "pthread" }
     toolset "gcc"
     linkgroups "On"
     buildoptions { "-fpermissive" }
-    linkoptions { "-static-libgcc -static-libstdc++ -Wl,--start-group " .. path.getabsolute("deps/lib/libcrypto.a") .. " " .. path.getabsolute("deps/lib/libssl.a") .. " " .. path.getabsolute("deps/lib/libcurl.a") .. " " ..  path.getabsolute("deps/lib/libz.a") .. " -Wl,--end-group" }
+    linkoptions { "-static-libgcc -static-libstdc++ -Wl,--no-as-needed" }
+  
+  filter { "system:linux", "configurations:ReleaseDLL" }
+    linkoptions { "-Wl,--start-group " .. path.getabsolute("deps/Release/lib/libcrypto.a") .. " " .. path.getabsolute("deps/Release/lib/libssl.a") .. " " .. path.getabsolute("deps/Release/lib/libcurl.a") .. " " ..  path.getabsolute("deps/Release/lib/libz.a") .. " -Wl,--end-group" }
+  
+  filter { "system:linux", "configurations:DebugDLL" }
+    linkoptions { "-Wl,--start-group " .. path.getabsolute("deps/Debug/lib/libcrypto.a") .. " " .. path.getabsolute("deps/Debug/lib/libssl.a") .. " " .. path.getabsolute("deps/Debug/lib/libcurl.a") .. " " ..  path.getabsolute("deps/Debug/lib/libz.a") .. " -Wl,--end-group" }
 
 --[[ 
 bild libcurl win:

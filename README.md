@@ -8,7 +8,7 @@ Download latest version [here](https://github.com/Polarhigh/AmxxCurl/releases).
 
 You must have installed the latest version premake5. ([Get it here](https://github.com/premake/premake-core))
 
-Also you should put all dependent libraries in deps/lib derictory, for windows it zlib_a.lib and libcurl_a.lib. For linux libcrypro.a, libssl.a, libcurl.a and libz.a. And related includes in deps/include.
+Also you should put all dependent libraries in deps/Release/lib derictory, for windows it zlib_a.lib and libcurl_a.lib. For linux libcrypro.a, libssl.a, libcurl.a and libz.a. And related includes in deps/Release/include.
 
 ## Windows
 
