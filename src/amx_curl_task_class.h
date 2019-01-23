@@ -38,8 +38,7 @@ public:
             amx_callback_data_len_ = data_len;
 
 #if AMXXCURL_USE_PTHREADS_EXPLICITLY
-            pthread_attr_init(&pthread_attr_);
-            pthread_create(&pthread_, &pthread_attr_, ThreadFunctionStatic, this);
+            pthread_create(&pthread_, nullptr, ThreadFunctionStatic, this);
             pthread_detach(pthread_);
 #else
             auto thread = std::thread(ThreadFunctionStatic, this);
@@ -104,7 +103,6 @@ private:
 
 #if AMXXCURL_USE_PTHREADS_EXPLICITLY
     pthread_t pthread_;
-    pthread_attr_t pthread_attr_;
 #endif
 };
 
