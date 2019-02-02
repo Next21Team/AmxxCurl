@@ -9,6 +9,9 @@
 #include <pthread.h>
 #endif
 
+class CurlTaskCallbackNotFoundException : std::exception
+{ };
+
 class AmxCurlTask
 {
     using AmxCallback = int;
@@ -22,20 +25,19 @@ public:
         thread_active_(false)
     { }
 
-    void PerformTask(const char* complete_callback, int handle, cell* data, int data_len)
+    void PerformTask(const char* complete_callback, int task_handle, cell* data, int data_len)
     {
         if (!thread_active_)
         {
-            thread_active_ = true;
+            if (MF_AmxFindPublic(amx_, complete_callback, &amx_callback_fun_) != AMX_ERR_NONE)
+            {
+                throw CurlTaskCallbackNotFoundException();
+            }
 
-            if(data != nullptr)
-                amx_callback_ = MF_RegisterSPForwardByName(amx_, complete_callback, FP_CELL /* handle */, FP_CELL /* CURLcode */, FP_ARRAY /* data */, FP_DONE);
-            else
-                amx_callback_ = MF_RegisterSPForwardByName(amx_, complete_callback, FP_CELL /* handle */, FP_CELL /* CURLcode */, FP_DONE);
-            
-            curl_manager_handle_ = handle;
+            thread_active_ = true;
             amx_callback_data_ = data;
             amx_callback_data_len_ = data_len;
+            task_handle_ = task_handle;
 
 #if AMXXCURL_USE_PTHREADS_EXPLICITLY
             pthread_create(&pthread_, nullptr, ThreadFunctionStatic, this);
@@ -64,15 +66,25 @@ private:
 
         thread_active_ = false;
 
-        if (amx_callback_data_ != nullptr)
+        // we need to store data here, because execution of amx callback can override object properties 
+        cell* cb_data = amx_callback_data_;
+        int cb_data_len = amx_callback_data_len_;
+        int cb_id = amx_callback_fun_;
+        int task_handle = task_handle_;
+
+        int forward_id;
+        if (cb_data != nullptr)
         {
-            MF_ExecuteForward(amx_callback_, curl_manager_handle_, result, MF_PrepareCellArray(amx_callback_data_, amx_callback_data_len_));
-            delete[] amx_callback_data_;
+            forward_id = MF_RegisterSPForward(amx_, cb_id, FP_CELL /* handle */, FP_CELL /* CURLcode */, FP_ARRAY /* data */, FP_DONE);
+            MF_ExecuteForward(forward_id, task_handle, result, MF_PrepareCellArray(cb_data, cb_data_len));
+            delete[] cb_data;
         }
         else
-            MF_ExecuteForward(amx_callback_, curl_manager_handle_, result);
-
-        MF_UnregisterSPForward(amx_callback_);
+        {
+            forward_id = MF_RegisterSPForward(amx_, cb_id, FP_CELL /* handle */, FP_CELL /* CURLcode */, FP_DONE);
+            MF_ExecuteForward(forward_id, task_handle, result);
+        }
+            
     }
     
 #if AMXXCURL_USE_PTHREADS_EXPLICITLY
@@ -95,9 +107,9 @@ private:
     Curl curl_;
     bool thread_active_;
 
-    AmxCallback amx_callback_;
-    int curl_manager_handle_;
+    AmxCallback amx_callback_fun_;
     cell* amx_callback_data_;
+    int task_handle_;
     int amx_callback_data_len_;
 
 

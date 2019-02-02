@@ -218,6 +218,7 @@ static cell AMX_NATIVE_CALL amx_curl_easy_perform(AMX* amx, cell* params)
     AmxCurlTaskManager& manager = AmxCurlController::Instance().get_curl_tasks_manager();
 
     AmxCurlTaskManager::CurlTaskHandle curl_handle = params[1];
+    const char* cb_function = MF_GetAmxString(amx, params[2], 0, &g_len);
     cell* data = nullptr;
     int data_len = static_cast<int>(params[4]);
 
@@ -229,13 +230,21 @@ static cell AMX_NATIVE_CALL amx_curl_easy_perform(AMX* amx, cell* params)
 
     try
     {
-        manager.CurlPerformTask(curl_handle, MF_GetAmxString(amx, params[2], 0, &g_len), data, data_len);
+        manager.CurlPerformTask(curl_handle, cb_function, data, data_len);
     }
     catch (const CurlAmxManagerInvalidHandleException&)
     {
-        delete[] data;
+        if(data != nullptr)
+            delete[] data;
 
         MF_LogError(amx, AMX_ERR_NATIVE, "Invalid curl handle");
+    }
+    catch (const CurlTaskCallbackNotFoundException&)
+    {
+        if (data != nullptr)
+            delete[] data;
+
+        MF_LogError(amx, AMX_ERR_NATIVE, "Not found callback function %s", cb_function);
     }
 
     return 0;
