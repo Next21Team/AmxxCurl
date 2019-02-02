@@ -305,8 +305,8 @@ static cell AMX_NATIVE_CALL amx_curl_easy_strerror(AMX* amx, cell* params)
 // ret				CURLFORMcode		cell
 static cell AMX_NATIVE_CALL amx_curl_formadd(AMX* amx, cell* params)
 {
-    curl_httppost* first = reinterpret_cast<curl_httppost*>(*MF_GetAmxAddr(amx, params[1]));
-    curl_httppost* last = reinterpret_cast<curl_httppost*>(*MF_GetAmxAddr(amx, params[2]));
+    curl_httppost** first = reinterpret_cast<curl_httppost**>(MF_GetAmxAddr(amx, params[1]));
+    curl_httppost** last = reinterpret_cast<curl_httppost**>(MF_GetAmxAddr(amx, params[2]));
 
     int i = 3, pairs = 0;
     while (static_cast<CURLformoption>(*MF_GetAmxAddr(amx, params[i])) != CURLFORM_END) { i += 2; pairs++; }
@@ -330,7 +330,7 @@ static cell AMX_NATIVE_CALL amx_curl_formadd(AMX* amx, cell* params)
     }
     forms[pairs].option = CURLFORM_END;
 
-    CURLFORMcode code = curl_formadd(&first, &last, CURLFORM_ARRAY, forms, CURLFORM_END);
+    CURLFORMcode code = curl_formadd(first, last, CURLFORM_ARRAY, forms, CURLFORM_END);
 
     delete[] forms; // pairs + 1
 
@@ -340,7 +340,7 @@ static cell AMX_NATIVE_CALL amx_curl_formadd(AMX* amx, cell* params)
 // params[1]		curl_httppost*first	cell
 static cell AMX_NATIVE_CALL amx_curl_formfree(AMX* amx, cell* params)
 {
-    curl_formfree(reinterpret_cast<curl_httppost*>(params[1]));
+    curl_formfree(reinterpret_cast<curl_httppost*>(*MF_GetAmxAddr(amx, params[1])));
 
     return 0;
 }
