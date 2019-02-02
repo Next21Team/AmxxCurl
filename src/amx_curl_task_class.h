@@ -84,7 +84,8 @@ private:
             forward_id = MF_RegisterSPForward(amx_, cb_id, FP_CELL /* handle */, FP_CELL /* CURLcode */, FP_DONE);
             MF_ExecuteForward(forward_id, task_handle, result);
         }
-            
+		
+        MF_UnregisterSPForward(forward_id);
     }
     
 #if AMXXCURL_USE_PTHREADS_EXPLICITLY
