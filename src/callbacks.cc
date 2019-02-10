@@ -1,7 +1,7 @@
 #include <curl/curl.h>
 #include "sdk/amxxmodule.h"
 #include "amx_curl_controller_class.h"
-
+#include "asio_poller.h"
 
 extern AMX_NATIVE_INFO g_amx_curl_natives[];
 
@@ -18,16 +18,16 @@ void OnAmxxAttach()
 
 // metamod
 
-void StartFrame_Post()
+void StartFrame()
 {
-    AmxCurlController::Instance().get_execution_queue().ExecuteAll();
+    AmxCurlController::Instance().get_asio_poller().Poll();
 
     SET_META_RESULT(MRES_IGNORED);
 }
 
 void ServerDeactivate()
 {
-    AmxCurlTaskManager& manager = AmxCurlController::Instance().get_curl_tasks_manager();
+    AmxCurlManager& manager = AmxCurlController::Instance().get_curl_manager();
 
     manager.TryInterruptAllTransfers();
     manager.WaitAllTransfers();

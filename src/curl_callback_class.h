@@ -1,7 +1,8 @@
-#ifndef _CURLCALLBACKH_
-#define _CURLCALLBACKH_
+#ifndef _CURL_CALLBACK_CLASS_H_
+#define _CURL_CALLBACK_CLASS_H_
 
 #include <exception>
+#include <string>
 
 #include <curl/curl.h>
 
@@ -56,16 +57,6 @@ protected:
         throw CurlUnhandledCallbackException("SockoptCallback");
     }
 
-    virtual curl_socket_t OpensocketCallback(curlsocktype purpose, struct curl_sockaddr *address)
-    {
-        throw CurlUnhandledCallbackException("OpensocketCallback");
-    }
-
-    virtual int ClosesocketCallback(curl_socket_t item)
-    {
-        throw CurlUnhandledCallbackException("ClosesocketCallback");
-    }
-
     virtual int ProgressCallback(double dltotal, double dlnow, double ultotal, double ulnow)
     {
         throw CurlUnhandledCallbackException("ProgressCallback");
@@ -111,7 +102,6 @@ protected:
         throw CurlUnhandledCallbackException("FnmatchCallback");
     }
 
-
 public:
     // Static callbacks
 
@@ -138,16 +128,6 @@ public:
     static int SockoptCallbackStatic(void *clientp, curl_socket_t curlfd, curlsocktype purpose)
     {
         return static_cast<CurlCallback*>(clientp)->SockoptCallback(curlfd, purpose);
-    }
-
-    static curl_socket_t OpensocketCallbackStatic(void *clientp, curlsocktype purpose, struct curl_sockaddr *address)
-    {
-        return static_cast<CurlCallback*>(clientp)->OpensocketCallback(purpose, address);
-    }
-
-    static int ClosesocketCallbackStatic(void *clientp, curl_socket_t item)
-    {
-        return static_cast<CurlCallback*>(clientp)->ClosesocketCallback(item);
     }
 
     static int ProgressCallbackStatic(void *clientp, double dltotal, double dlnow, double ultotal, double ulnow)
@@ -195,8 +175,6 @@ public:
         return static_cast<CurlCallback*>(ptr)->FnmatchCallback(pattern, string);
     }
 
-    // helpers
-
     static void* GetMethodPointerForCallbackOption(CURLoption callback_option)
     {
         switch (callback_option) {
@@ -205,8 +183,6 @@ public:
         case CURLOPT_IOCTLFUNCTION:         return reinterpret_cast<void*>(IoctlCallbackStatic);
         case CURLOPT_SEEKFUNCTION:          return reinterpret_cast<void*>(SeekCallbackStatic);
         case CURLOPT_SOCKOPTFUNCTION:       return reinterpret_cast<void*>(SockoptCallbackStatic);
-        case CURLOPT_OPENSOCKETFUNCTION:    return reinterpret_cast<void*>(OpensocketCallbackStatic);
-        case CURLOPT_CLOSESOCKETFUNCTION:   return reinterpret_cast<void*>(ClosesocketCallbackStatic);
         case CURLOPT_PROGRESSFUNCTION:      return reinterpret_cast<void*>(ProgressCallbackStatic);
         case CURLOPT_XFERINFOFUNCTION:      return reinterpret_cast<void*>(ProgressCallbackxStatic);
         case CURLOPT_HEADERFUNCTION:        return reinterpret_cast<void*>(HeaderCallbackStatic);
@@ -220,82 +196,6 @@ public:
             throw std::runtime_error("Unsupported callback option");
         }
     }
-
-    static CURLoption GetDataOptionForCallbackOption(CURLoption callback_option)
-    {
-        switch (callback_option) {
-        case CURLOPT_WRITEFUNCTION:         return CURLOPT_WRITEDATA;
-        case CURLOPT_READFUNCTION:          return CURLOPT_READDATA;
-        case CURLOPT_IOCTLFUNCTION:         return CURLOPT_IOCTLDATA;
-        case CURLOPT_SEEKFUNCTION:          return CURLOPT_SEEKDATA;
-        case CURLOPT_SOCKOPTFUNCTION:       return CURLOPT_SOCKOPTDATA;
-        case CURLOPT_OPENSOCKETFUNCTION:    return CURLOPT_OPENSOCKETDATA;
-        case CURLOPT_CLOSESOCKETFUNCTION:   return CURLOPT_CLOSESOCKETDATA;
-        case CURLOPT_PROGRESSFUNCTION:      return CURLOPT_PROGRESSDATA;
-        case CURLOPT_XFERINFOFUNCTION:      return CURLOPT_XFERINFODATA;
-        case CURLOPT_HEADERFUNCTION:        return CURLOPT_HEADERDATA;
-        case CURLOPT_DEBUGFUNCTION:         return CURLOPT_DEBUGDATA;
-        case CURLOPT_SSL_CTX_FUNCTION:      return CURLOPT_SSL_CTX_DATA;
-        case CURLOPT_INTERLEAVEFUNCTION:    return CURLOPT_INTERLEAVEDATA;
-        case CURLOPT_CHUNK_BGN_FUNCTION:    return CURLOPT_CHUNK_DATA;
-        case CURLOPT_CHUNK_END_FUNCTION:    return CURLOPT_CHUNK_DATA;
-        case CURLOPT_FNMATCH_FUNCTION:      return CURLOPT_FNMATCH_DATA;
-        default:
-            throw std::runtime_error("Unsupported callback option");
-        }
-    }
-
-    static bool IsDataOption(CURLoption option) noexcept
-    {
-        switch (option)
-        {
-        case CURLOPT_WRITEDATA:
-        case CURLOPT_READDATA:
-        case CURLOPT_IOCTLDATA:
-        case CURLOPT_SEEKDATA:
-        case CURLOPT_SOCKOPTDATA:
-        case CURLOPT_OPENSOCKETDATA:
-        case CURLOPT_CLOSESOCKETDATA:
-        case CURLOPT_PROGRESSDATA:
-            //case CURLOPT_XFERINFODATA:
-        case CURLOPT_HEADERDATA:
-        case CURLOPT_DEBUGDATA:
-        case CURLOPT_SSL_CTX_DATA:
-        case CURLOPT_INTERLEAVEDATA:
-        case CURLOPT_CHUNK_DATA:
-        case CURLOPT_FNMATCH_DATA:
-            return true;
-
-        default:
-            return false;
-        }
-    }
-
-    static bool IsCallbackOption(CURLoption option) noexcept
-    {
-        switch (option) {
-        case CURLOPT_WRITEFUNCTION:
-        case CURLOPT_READFUNCTION:
-        case CURLOPT_IOCTLFUNCTION:
-        case CURLOPT_SEEKFUNCTION:
-        case CURLOPT_SOCKOPTFUNCTION:
-        case CURLOPT_OPENSOCKETFUNCTION:
-        case CURLOPT_CLOSESOCKETFUNCTION:
-        case CURLOPT_PROGRESSFUNCTION:
-        case CURLOPT_XFERINFOFUNCTION:
-        case CURLOPT_HEADERFUNCTION:
-        case CURLOPT_DEBUGFUNCTION:
-        case CURLOPT_SSL_CTX_FUNCTION:
-        case CURLOPT_INTERLEAVEFUNCTION:
-        case CURLOPT_CHUNK_BGN_FUNCTION:
-        case CURLOPT_CHUNK_END_FUNCTION:
-        case CURLOPT_FNMATCH_FUNCTION:
-            return true;
-
-        default:
-            return false;
-        }
-    }
 };
 
-#endif // _CURLCALLBACKH_
+#endif // _CURL_CALLBACK_CLASS_H_

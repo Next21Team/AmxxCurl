@@ -1,22 +1,13 @@
 #ifndef _AMX_CURL_CONTROLLER_H_
 #define _AMX_CURL_CONTROLLER_H_
 
-#include "amx_curl_task_manager_class.h"
-#include "pthread_execution_queue.h"
+#include "amx_curl_manager_class.h"
 
 class AmxCurlController
 {
 public:
-    AmxCurlTaskManager& get_curl_tasks_manager()
-    {
-        return curl_task_manager_;
-    }
-
-    // Возвращает очередь по которой происходит синхронизация всех колбэков, которые передаются в amxmodx
-    ExecutionQueueInterface& get_execution_queue()
-    {
-        return *execution_queue_;
-    }
+    AmxCurlManager& get_curl_manager() { return curl_manager_; }
+    AsioPoller& get_asio_poller() { return asio_poller_; }
 
     static AmxCurlController& Instance()
     {
@@ -25,25 +16,15 @@ public:
     }
 
 private:
-#if AMXXCURL_USE_PTHREADS_EXPLICITLY
     AmxCurlController() :
-        execution_queue_(std::make_unique<PthreadExecutionQueue>()),
-        curl_task_manager_(*execution_queue_)
-    {
-    }
-#else
-    AmxCurlController() :
-        execution_queue_(std::make_unique<SimpleMultiplatformExecutionQueue>()),
-        curl_task_manager_(*execution_queue_)
-    {
-    }
-#endif
+        curl_manager_(asio_poller_)
+    { }
 
     AmxCurlController(const AmxCurlController& root);
     AmxCurlController& operator=(const AmxCurlController&);
 
-    std::unique_ptr<ExecutionQueueInterface> execution_queue_;
-    AmxCurlTaskManager curl_task_manager_;
+    AmxCurlManager curl_manager_;
+    AsioPoller asio_poller_;
 };
 
 #endif // _AMX_CURL_CONTROLLER_H_

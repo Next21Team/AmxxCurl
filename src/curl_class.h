@@ -1,11 +1,12 @@
-﻿#ifndef _CURLH_
-#define _CURLH_
+﻿#ifndef _CURL_CLASS_H_
+#define _CURL_CLASS_H_
 
 #include <string>
 #include <memory>
 
 #include <curl/curl.h>
 #include "curl_callback_class.h"
+#include "curl_utils_class.h"
 
 class CurlInvalidOptionException : public std::exception
 {
@@ -26,22 +27,29 @@ class CurlInitFailtureException : public std::exception
 {
 };
 
-// обертка для easy интерфейса curl
+// wrapper for easy interface
 class Curl
 {
 public:
     // curl_callback - класс в котором реализованы фунции обратного вызова для курла
     // Исключения: CurlInitFailtureException
-    Curl(std::shared_ptr<CurlCallback> curl_callback)
+    Curl(std::shared_ptr<CurlCallback> curl_callback) :
+        curl_callback_(curl_callback)
     {
         InitCurl();
+    }
 
-        curl_callback_ = curl_callback;
+    Curl(Curl&& other) :
+        curl_(other.curl_),
+        curl_callback_(other.curl_callback_)
+    {
+        other.curl_ = nullptr;
     }
 
     ~Curl()
     {
-        curl_easy_cleanup(curl_);
+        if (curl_ != nullptr)
+            curl_easy_cleanup(curl_);
     }
 
     // Установить значение опциии
@@ -49,11 +57,11 @@ public:
     template<class T>
     CURLcode SetOption(CURLoption option, T data) const
     {
-        if(CurlCallback::IsDataOption(option))
+        if(CurlUtils::IsDataOption(option) && option != CURLOPT_OPENSOCKETDATA && option != CURLOPT_CLOSESOCKETDATA)
             throw CurlInvalidOptionException(option, "can't set data option, use CurlCallback derived class to store data");
 
-        if(CurlCallback::IsCallbackOption(option))
-            throw CurlInvalidOptionException(option, "can't set callback option, use EnableCallback to enable callbacks");
+        if(CurlUtils::IsCallbackOption(option) && option != CURLOPT_OPENSOCKETFUNCTION && option != CURLOPT_CLOSESOCKETFUNCTION)
+            throw CurlInvalidOptionException(option, "can't set callback option, use Curl::BindCallback to enable callbacks");
 
         return curl_easy_setopt(curl_, option, data);
     }
@@ -63,12 +71,12 @@ public:
     // Исключения: CurlInvalidOptionException
     void BindCallback(CURLoption option) const
     {
-        if (!CurlCallback::IsCallbackOption(option))
+        if (!CurlUtils::IsCallbackOption(option))
             throw CurlInvalidOptionException(option, "callback option needed");
 
         CURLcode code;
         
-        code = curl_easy_setopt(curl_, CurlCallback::GetDataOptionForCallbackOption(option), curl_callback_.get());
+        code = curl_easy_setopt(curl_, CurlUtils::GetDataOptionForCallbackOption(option), curl_callback_.get());
         if (code != CURLE_OK)
             throw CurlInvalidOptionException(option, "failture with code " + code);
 
@@ -112,6 +120,9 @@ public:
         curl_free(unescaped_url);
     }
 
+    CURL* get_handle() const noexcept { return curl_; }
+    std::shared_ptr<CurlCallback> get_curl_callback() const noexcept { return curl_callback_; }
+
 private:
     void InitCurl()
     {
@@ -125,4 +136,4 @@ private:
     std::shared_ptr<CurlCallback> curl_callback_;
 };
 
-#endif // _CURLTASKH_
+#endif // _CURL_CLASS_H_

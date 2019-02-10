@@ -15,7 +15,7 @@
  *   to add multiple entries.
  */
 #define MODULE_NAME "CURL AMXX"
-#define MODULE_VERSION "1.0.4"
+#define MODULE_VERSION "1.1.0a"
 #define MODULE_AUTHOR "Polarhigh"
 #define MODULE_URL "https://github.com/Polarhigh/AmxxCurl"
 #define MODULE_LOGTAG "CURL"
@@ -123,7 +123,7 @@
  #define FN_ServerDeactivate			ServerDeactivate			/* pfnServerDeactivate()		(wd) Server is leaving the map (shutdown or changelevel); SDK2 */
 // #define FN_PlayerPreThink			PlayerPreThink				/* pfnPlayerPreThink() */
 // #define FN_PlayerPostThink			PlayerPostThink				/* pfnPlayerPostThink() */
-// #define FN_StartFrame				StartFrame					/* pfnStartFrame() */
+ #define FN_StartFrame				    StartFrame					/* pfnStartFrame() */
 // #define FN_ParmsNewLevel				ParmsNewLevel				/* pfnParmsNewLevel() */
 // #define FN_ParmsChangeLevel			ParmsChangeLevel			/* pfnParmsChangeLevel() */
 // #define FN_GetGameDescription		GetGameDescription			/* pfnGetGameDescription()		Returns string describing current .dll.  E.g. "TeamFotrress 2" "Half-Life" */
@@ -175,7 +175,7 @@
 // #define FN_ServerDeactivate_Post				ServerDeactivate_Post
 // #define FN_PlayerPreThink_Post				PlayerPreThink_Post
 // #define FN_PlayerPostThink_Post				PlayerPostThink_Post
- #define FN_StartFrame_Post					StartFrame_Post
+// #define FN_StartFrame_Post					StartFrame_Post
 // #define FN_ParmsNewLevel_Post				ParmsNewLevel_Post
 // #define FN_ParmsChangeLevel_Post				ParmsChangeLevel_Post
 // #define FN_GetGameDescription_Post			GetGameDescription_Post

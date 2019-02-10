@@ -24,6 +24,7 @@ workspace "AmxxCurl"
 
   -- flags & options --
   flags { "No64BitChecks", "MultiProcessorCompile" }
+  defines "NO_MSVC8_AUTO_COMPAT"
   
   filter "configurations:DebugDLL"
     defines { "DEBUG", "_DEBUG" }
@@ -38,6 +39,7 @@ workspace "AmxxCurl"
     flags { "NoIncrementalLink", "LinkTimeOptimization" }
 	
   filter { "system:windows" }
+    defines "_CRT_SECURE_NO_WARNINGS"
     systemversion "latest"
 
   filter "configurations:*"
@@ -52,11 +54,11 @@ project "AmxxCurl"
   language    "C++"
   targetdir   "bin/%{cfg.buildcfg}"
   includedirs {
-    os.getenv("HLSDK") .. "/dlls",
-    os.getenv("HLSDK") .. "/engine",
-    os.getenv("HLSDK") .. "/common",
-    os.getenv("HLSDK") .. "/public",
-    os.getenv("METAMOD"),
+    "deps/halflife/dlls",
+    "deps/halflife/engine",
+    "deps/halflife/common",
+    "deps/halflife/public",
+    "deps/metamod",
   }
   
   -- src, includes & libs --
