@@ -1,6 +1,7 @@
 #include "sdk/amxxmodule.h"
 
 #include "curl_class.h"
+#include "amx_curl_manager_class.h"
 #include "amx_curl_controller_class.h"
 
 int g_len;
@@ -11,9 +12,9 @@ int g_len;
 // params[4]		int len			cell | размер дестенейшн массива
 static cell AMX_NATIVE_CALL amx_curl_easy_escape(AMX* amx, cell* params)
 {
-    AmxCurlTaskManager& manager = AmxCurlController::Instance().get_curl_tasks_manager();
+    AmxCurlManager& manager = AmxCurlController::Instance().get_curl_manager();
 
-    AmxCurlTaskManager::CurlTaskHandle curl_handle = params[1];
+    AmxCurlManager::AmxCurlHandle curl_handle = params[1];
 
     try
     {
@@ -38,9 +39,9 @@ static cell AMX_NATIVE_CALL amx_curl_easy_escape(AMX* amx, cell* params)
 // ret				int new_len			cell | реальный размер нового массива
 static cell AMX_NATIVE_CALL amx_curl_easy_unescape(AMX* amx, cell* params)
 {
-    AmxCurlTaskManager& manager = AmxCurlController::Instance().get_curl_tasks_manager();
+    AmxCurlManager& manager = AmxCurlController::Instance().get_curl_manager();
 
-    AmxCurlTaskManager::CurlTaskHandle curl_handle = params[1];
+    AmxCurlManager::AmxCurlHandle curl_handle = params[1];
 
     try
     {
@@ -65,7 +66,7 @@ static cell AMX_NATIVE_CALL amx_curl_easy_init(AMX* amx, cell* params)
 {
     try
     {
-        return static_cast<cell>(AmxCurlController::Instance().get_curl_tasks_manager().CreateTaskForAmx(amx));
+        return static_cast<cell>(AmxCurlController::Instance().get_curl_manager().CreateCurl(amx));
     }
     catch(const CurlInitFailtureException&)
     {
@@ -79,9 +80,9 @@ static cell AMX_NATIVE_CALL amx_curl_easy_init(AMX* amx, cell* params)
 // ret				CURLcode			cell
 static cell AMX_NATIVE_CALL amx_curl_easy_setopt(AMX* amx, cell* params)
 {
-    AmxCurlTaskManager& manager = AmxCurlController::Instance().get_curl_tasks_manager();
+    AmxCurlManager& manager = AmxCurlController::Instance().get_curl_manager();
 
-    AmxCurlTaskManager::CurlTaskHandle curl_handle = params[1];
+    AmxCurlManager::AmxCurlHandle curl_handle = params[1];
     CURLoption option = static_cast<CURLoption>(params[2]);
 
     try
@@ -93,7 +94,7 @@ static cell AMX_NATIVE_CALL amx_curl_easy_setopt(AMX* amx, cell* params)
         // CURLOPTTYPE_OBJECTPOINT
         if (option < CURLOPT_WRITEFUNCTION)
         {
-            if (CurlCallback::IsDataOption(option)) {
+            if (CurlUtils::IsDataOption(option)) {
                 return manager.CurlSetOption(curl_handle, option, reinterpret_cast<void*>(*MF_GetAmxAddr(amx, params[3])));
             }
 
@@ -151,9 +152,9 @@ static cell AMX_NATIVE_CALL amx_curl_easy_setopt(AMX* amx, cell* params)
 // ret				CURLcode		cell
 static cell AMX_NATIVE_CALL amx_curl_easy_getinfo(AMX* amx, cell* params)
 {
-    AmxCurlTaskManager& manager = AmxCurlController::Instance().get_curl_tasks_manager();
+    AmxCurlManager& manager = AmxCurlController::Instance().get_curl_manager();
 
-    AmxCurlTaskManager::CurlTaskHandle curl_handle = params[1];
+    AmxCurlManager::AmxCurlHandle curl_handle = params[1];
     CURLINFO curl_info = static_cast<CURLINFO>(params[2]);
 
     CURLcode ret_code;
@@ -215,9 +216,9 @@ static cell AMX_NATIVE_CALL amx_curl_easy_getinfo(AMX* amx, cell* params)
 // params[3]              data len      cell
 static cell AMX_NATIVE_CALL amx_curl_easy_perform(AMX* amx, cell* params)
 {
-    AmxCurlTaskManager& manager = AmxCurlController::Instance().get_curl_tasks_manager();
+    AmxCurlManager& manager = AmxCurlController::Instance().get_curl_manager();
 
-    AmxCurlTaskManager::CurlTaskHandle curl_handle = params[1];
+    AmxCurlManager::AmxCurlHandle curl_handle = params[1];
     cell* data = nullptr;
     int data_len = static_cast<int>(params[4]);
 
@@ -244,9 +245,9 @@ static cell AMX_NATIVE_CALL amx_curl_easy_perform(AMX* amx, cell* params)
 // params[1]		CURL  handle	   cell
 static cell AMX_NATIVE_CALL amx_curl_easy_cleanup(AMX* amx, cell* params)
 {
-    AmxCurlTaskManager& manager = AmxCurlController::Instance().get_curl_tasks_manager();
+    AmxCurlManager& manager = AmxCurlController::Instance().get_curl_manager();
 
-    AmxCurlTaskManager::CurlTaskHandle curl_handle = params[1];
+    AmxCurlManager::AmxCurlHandle curl_handle = params[1];
 
     try
     {
@@ -263,9 +264,9 @@ static cell AMX_NATIVE_CALL amx_curl_easy_cleanup(AMX* amx, cell* params)
 // params[1]		CURL  handle	    cell
 static cell AMX_NATIVE_CALL amx_curl_easy_reset(AMX* amx, cell* params)
 {
-    AmxCurlTaskManager& manager = AmxCurlController::Instance().get_curl_tasks_manager();
+    AmxCurlManager& manager = AmxCurlController::Instance().get_curl_manager();
 
-    AmxCurlTaskManager::CurlTaskHandle curl_handle = params[1];
+    AmxCurlManager::AmxCurlHandle curl_handle = params[1];
 
     try
     {
@@ -296,8 +297,8 @@ static cell AMX_NATIVE_CALL amx_curl_easy_strerror(AMX* amx, cell* params)
 // ret				CURLFORMcode		cell
 static cell AMX_NATIVE_CALL amx_curl_formadd(AMX* amx, cell* params)
 {
-    curl_httppost* first = reinterpret_cast<curl_httppost*>(*MF_GetAmxAddr(amx, params[1]));
-    curl_httppost* last = reinterpret_cast<curl_httppost*>(*MF_GetAmxAddr(amx, params[2]));
+    curl_httppost** first = reinterpret_cast<curl_httppost**>(MF_GetAmxAddr(amx, params[1]));
+    curl_httppost** last = reinterpret_cast<curl_httppost**>(MF_GetAmxAddr(amx, params[2]));
 
     int i = 3, pairs = 0;
     while (static_cast<CURLformoption>(*MF_GetAmxAddr(amx, params[i])) != CURLFORM_END) { i += 2; pairs++; }
@@ -321,7 +322,7 @@ static cell AMX_NATIVE_CALL amx_curl_formadd(AMX* amx, cell* params)
     }
     forms[pairs].option = CURLFORM_END;
 
-    CURLFORMcode code = curl_formadd(&first, &last, CURLFORM_ARRAY, forms, CURLFORM_END);
+    CURLFORMcode code = curl_formadd(first, last, CURLFORM_ARRAY, forms, CURLFORM_END);
 
     delete[] forms; // pairs + 1
 
@@ -331,7 +332,7 @@ static cell AMX_NATIVE_CALL amx_curl_formadd(AMX* amx, cell* params)
 // params[1]		curl_httppost*first	cell
 static cell AMX_NATIVE_CALL amx_curl_formfree(AMX* amx, cell* params)
 {
-    curl_formfree(reinterpret_cast<curl_httppost*>(params[1]));
+    curl_formfree(reinterpret_cast<curl_httppost*>(*MF_GetAmxAddr(amx, params[1])));
 
     return 0;
 }
