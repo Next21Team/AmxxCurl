@@ -2,7 +2,6 @@
 #define _CURL_MULTI_CLASS_H_
 
 #include <map>
-#include <ares.h>
 #include "asio_poller.h"
 #include "curl_class.h"
 

@@ -39,7 +39,7 @@ workspace "AmxxCurl"
     flags { "NoIncrementalLink", "LinkTimeOptimization" }
 	
   filter { "system:windows" }
-    defines "_CRT_SECURE_NO_WARNINGS"
+    defines { "_CRT_SECURE_NO_WARNINGS", "_WIN32_WINNT=0x0600" }
     systemversion "latest"
 
   filter "configurations:*"
@@ -54,40 +54,42 @@ project "AmxxCurl"
   kind        "SharedLib"
   language    "C++"
   targetdir   "bin/%{cfg.buildcfg}"
+
   includedirs {
     "deps/halflife/dlls",
     "deps/halflife/engine",
     "deps/halflife/common",
     "deps/halflife/public",
     "deps/metamod",
+    "deps/asio",
+    "deps/curl/include"
   }
-  
-  -- src, includes & libs --
+
+  libdirs { 
+    "deps/curl/lib",
+    "deps/openssl/lib",
+    "deps/zlib/lib"
+  }
+
   files { "src/**.h", "src/**.cc", "src/sdk/**.cpp" }
 
-  filter "configurations:ReleaseDLL"
-    includedirs { "deps/Release/include" }
-	libdirs { "deps/Release/lib" }
-
-  filter "configurations:DebugDLL"
-    includedirs { "deps/Release/include" }
-	libdirs { "deps/Debug/lib" }
-
-  --
   filter "system:windows"
-    links { "Ws2_32", "Crypt32", "Wldap32", "Normaliz", "zlib_a", "libcurl_a" }
+    links { "Ws2_32", "Crypt32", "Wldap32", "Normaliz", "zlib_a" }
 
+  filter { "system:windows", "configurations:ReleaseDLL" }
+    links { "libcurl_a" }
+
+  filter { "system:windows", "configurations:DebugDLL" }
+    links { "libcurl_a_debug" }
+
+  filter { "system:linux" }
+    linkoptions { "-Wl,--start-group " .. path.getabsolute("deps/openssl/lib/libcrypto.a") .. " " .. path.getabsolute("deps/openssl/lib/libssl.a") .. " " .. path.getabsolute("deps/curl/lib/libcurl.a") .. " " ..  path.getabsolute("deps/zlib/lib/libz.a") .. " " .. path.getabsolute("deps/cares/lib/libcares.a") .. " -Wl,--end-group" }
+	
   filter "system:linux"
     links { "pthread", "rt" }
     toolset "gcc"
     linkgroups "On"
     linkoptions { "-static-libgcc -static-libstdc++ -Wl,--no-as-needed" }
-  
-  filter { "system:linux", "configurations:ReleaseDLL" }
-    linkoptions { "-Wl,--start-group " .. path.getabsolute("deps/Release/lib/libcrypto.a") .. " " .. path.getabsolute("deps/Release/lib/libssl.a") .. " " .. path.getabsolute("deps/Release/lib/libcurl.a") .. " " ..  path.getabsolute("deps/Release/lib/libz.a") .. " " .. path.getabsolute("deps/Release/lib/libcares.a") .. " -Wl,--end-group" }
-  
-  filter { "system:linux", "configurations:DebugDLL" }
-    linkoptions { "-Wl,--start-group " .. path.getabsolute("deps/Debug/lib/libcrypto.a") .. " " .. path.getabsolute("deps/Debug/lib/libssl.a") .. " " .. path.getabsolute("deps/Debug/lib/libcurl.a") .. " " ..  path.getabsolute("deps/Debug/lib/libz.a") .. " " .. path.getabsolute("deps/Debug/lib/libcares.a") .. " -Wl,--end-group" }
 
 --[[ 
 bild libcurl win:
