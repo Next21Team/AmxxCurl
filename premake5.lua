@@ -45,7 +45,8 @@ workspace "AmxxCurl"
   filter "configurations:*"
     defines {
       "HAVE_STDINT_H", -- prevent C2371 for int32_t in amxmodx
-      "CURL_STATICLIB"
+      "CURL_STATICLIB",
+      "ASIO_STANDALONE"
     }
 
 project "AmxxCurl"
@@ -77,18 +78,16 @@ project "AmxxCurl"
     links { "Ws2_32", "Crypt32", "Wldap32", "Normaliz", "zlib_a", "libcurl_a" }
 
   filter "system:linux"
-    defines "AMXXCURL_USE_PTHREADS_EXPLICITLY"
-    links { "pthread" }
+    links { "pthread", "rt" }
     toolset "gcc"
     linkgroups "On"
-    buildoptions { "-fpermissive" }
     linkoptions { "-static-libgcc -static-libstdc++ -Wl,--no-as-needed" }
   
   filter { "system:linux", "configurations:ReleaseDLL" }
-    linkoptions { "-Wl,--start-group " .. path.getabsolute("deps/Release/lib/libcrypto.a") .. " " .. path.getabsolute("deps/Release/lib/libssl.a") .. " " .. path.getabsolute("deps/Release/lib/libcurl.a") .. " " ..  path.getabsolute("deps/Release/lib/libz.a") .. " -Wl,--end-group" }
+    linkoptions { "-Wl,--start-group " .. path.getabsolute("deps/Release/lib/libcrypto.a") .. " " .. path.getabsolute("deps/Release/lib/libssl.a") .. " " .. path.getabsolute("deps/Release/lib/libcurl.a") .. " " ..  path.getabsolute("deps/Release/lib/libz.a") .. " " .. path.getabsolute("deps/Release/lib/libcares.a") .. " -Wl,--end-group" }
   
   filter { "system:linux", "configurations:DebugDLL" }
-    linkoptions { "-Wl,--start-group " .. path.getabsolute("deps/Debug/lib/libcrypto.a") .. " " .. path.getabsolute("deps/Debug/lib/libssl.a") .. " " .. path.getabsolute("deps/Debug/lib/libcurl.a") .. " " ..  path.getabsolute("deps/Debug/lib/libz.a") .. " -Wl,--end-group" }
+    linkoptions { "-Wl,--start-group " .. path.getabsolute("deps/Debug/lib/libcrypto.a") .. " " .. path.getabsolute("deps/Debug/lib/libssl.a") .. " " .. path.getabsolute("deps/Debug/lib/libcurl.a") .. " " ..  path.getabsolute("deps/Debug/lib/libz.a") .. " " .. path.getabsolute("deps/Debug/lib/libcares.a") .. " -Wl,--end-group" }
 
 --[[ 
 bild libcurl win:

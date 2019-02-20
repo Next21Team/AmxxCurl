@@ -7,10 +7,9 @@
 #define DEBUG_LOG(f_, ...) 
 #endif
 
-
 int CurlSocketCallbackStatic(CURL* easy, curl_socket_t s, int what, void* userp, void* socketp)
 {
-	return static_cast<CurlMulti*>(userp)->CurlSocketCallback(easy, s, what, socketp);
+    return static_cast<CurlMulti*>(userp)->CurlSocketCallback(easy, s, what, socketp);
 }
 
 int CurlTimerCallbackStatic(CURLM* multi, long timeout_ms, void* userp)
@@ -34,16 +33,16 @@ CurlMulti::CurlMulti(AsioPoller& asio_poller) :
     asio_poller_(asio_poller),
     running_handles_(0)
 {
-	curl_multi_ = curl_multi_init();
-	curl_multi_setopt(curl_multi_, CURLMOPT_SOCKETFUNCTION, &CurlSocketCallbackStatic);
-	curl_multi_setopt(curl_multi_, CURLMOPT_SOCKETDATA, this);
-	curl_multi_setopt(curl_multi_, CURLMOPT_TIMERFUNCTION, &CurlTimerCallbackStatic);
-	curl_multi_setopt(curl_multi_, CURLMOPT_TIMERDATA, this);
+    curl_multi_ = curl_multi_init();
+    curl_multi_setopt(curl_multi_, CURLMOPT_SOCKETFUNCTION, &CurlSocketCallbackStatic);
+    curl_multi_setopt(curl_multi_, CURLMOPT_SOCKETDATA, this);
+    curl_multi_setopt(curl_multi_, CURLMOPT_TIMERFUNCTION, &CurlTimerCallbackStatic);
+    curl_multi_setopt(curl_multi_, CURLMOPT_TIMERDATA, this);
 }
 
 CurlMulti::~CurlMulti()
 {
-	curl_multi_cleanup(curl_multi_);
+    curl_multi_cleanup(curl_multi_);
 }
 
 void CurlMulti::AddCurl(Curl& curl, CurlMulti::CurlPerformComplete&& callback)
@@ -55,7 +54,7 @@ void CurlMulti::AddCurl(Curl& curl, CurlMulti::CurlPerformComplete&& callback)
     curl.SetOption(CURLOPT_CLOSESOCKETFUNCTION, &CurlCloseSocketCallbackStatic);
     curl.SetOption(CURLOPT_CLOSESOCKETDATA, this);
 
-	CURLMcode code = curl_multi_add_handle(curl_multi_, curl.get_handle());
+    CURLMcode code = curl_multi_add_handle(curl_multi_, curl.get_handle());
 }
 
 void CurlMulti::RemoveCurl(Curl& curl)
@@ -64,16 +63,16 @@ void CurlMulti::RemoveCurl(Curl& curl)
     curl_multi_remove_handle(curl_multi_, curl.get_handle());
 }
 
-curl_socket_t CurlMulti::CurlOpenSocketCallback(curlsocktype purpose, struct curl_sockaddr *address)
+curl_socket_t CurlMulti::CurlOpenSocketCallback(curlsocktype purpose, curl_sockaddr* address)
 {
     curl_socket_t sockfd = CURL_SOCKET_BAD;
 
-    if (purpose == CURLSOCKTYPE_IPCXN && address->family == AF_INET)
+    if (purpose == CURLSOCKTYPE_IPCXN && (address->family == AF_INET || address->family == AF_INET6))
     {
-        asio::ip::tcp::socket* tcp_socket = new asio::ip::tcp::socket(asio_poller_.get_io_context());
+        asio::ip::tcp::socket tcp_socket = asio_poller_.CreateTcpSocket();
 
         asio::error_code ec;
-        tcp_socket->open(asio::ip::tcp::v4(), ec);
+        tcp_socket.open(address->family == AF_INET ? asio::ip::tcp::v4() : asio::ip::tcp::v6(), ec);
 
         if (ec)
         {
@@ -81,13 +80,15 @@ curl_socket_t CurlMulti::CurlOpenSocketCallback(curlsocktype purpose, struct cur
             return CURL_SOCKET_BAD;
         }
 
-        sockfd = tcp_socket->native_handle();
+        sockfd = tcp_socket.native_handle();
 
-        socket_map_.emplace(sockfd, tcp_socket);
+        socket_map_.emplace(sockfd, std::move(tcp_socket));
     }
+    else
+        DEBUG_LOG("Curl | can't open socket, invalid condition. purpose=%d; address->family=%d\n", purpose, address->family);
 
-    DEBUG_LOG("Curl | open socket %d\n", sockfd);
-    
+    DEBUG_LOG("Curl | open socket %s %d\n", (address->family == AF_INET ? "ipv4" : "ipv6"), sockfd);
+
     return sockfd;
 }
 
@@ -96,7 +97,6 @@ int CurlMulti::CurlCloseSocketCallback(curl_socket_t item)
     auto it = socket_map_.find(item);
     if (it != socket_map_.end())
     {
-        delete it->second;
         socket_map_.erase(item);
     }
 
@@ -105,26 +105,42 @@ int CurlMulti::CurlCloseSocketCallback(curl_socket_t item)
     return 0;
 }
 
-// private
-
 int CurlMulti::CurlSocketCallback(CURL* easy, curl_socket_t s, int what, void* socketp)
 {
-    const char *whatstr[] = { "none", "IN", "OUT", "INOUT", "REMOVE" };
+    const char* whatstr[] = { "none", "IN", "OUT", "INOUT", "REMOVE" };
     DEBUG_LOG("Curl | CurlSocketCallback: socket=%d; what=%s; sockp=%d\n", s, whatstr[what], socketp);
 
     SocketData* socketData = (SocketData*)socketp;
-    
+
     if (what == CURL_POLL_REMOVE)
     {
         if (socketData != nullptr)
+        {
+            if (socketData->is_ares_socket)
+            {
+                auto it = socket_map_.find(s);
+                if (it != socket_map_.end())
+                    socket_map_.erase(s);
+            }
             delete socketData;
+        }
     }
     else
     {
         if (socketData == nullptr)
         {
-            socketData = new SocketData();
-            DEBUG_LOG("Curl | Adding SocketData: what=%s\n", whatstr[socketData->previous_action]);
+            socketData = new SocketData;
+
+            auto it = socket_map_.find(s);
+            if (it == socket_map_.end())
+            {
+                socketData->is_ares_socket = true;
+
+                asio::ip::tcp::socket tcp_socket = asio_poller_.WrapTcpSocket(s, asio::ip::tcp::v4());
+                socket_map_.emplace(s, std::move(tcp_socket));
+            }
+
+            DEBUG_LOG("Curl | Adding SocketData: what=%s; is ares socket: %i\n", whatstr[socketData->previous_action], socketData->is_ares_socket);
             curl_multi_assign(curl_multi_, s, socketData);
         }
 
@@ -188,13 +204,13 @@ void CurlMulti::AsioSocketActionCallback(int action, curl_socket_t s, SocketData
 
         if (socket_map_.find(s) != socket_map_.end() && action == socket_data->previous_action || socket_data->previous_action == CURL_POLL_INOUT)
         {
-            auto* tcp_socket = socket_map_.find(s)->second;
+            auto& tcp_socket = socket_map_.find(s)->second;
 
             if (action & CURL_POLL_IN)
-                tcp_socket->async_wait(asio::socket_base::wait_type::wait_read, std::bind(&CurlMulti::AsioSocketActionCallback, this, action, s, socket_data, _1));
+                tcp_socket.async_wait(asio::socket_base::wait_type::wait_read, std::bind(&CurlMulti::AsioSocketActionCallback, this, action, s, socket_data, _1));
 
             if (action & CURL_POLL_OUT)
-                tcp_socket->async_wait(asio::socket_base::wait_type::wait_write, std::bind(&CurlMulti::AsioSocketActionCallback, this, action, s, socket_data, _1));
+                tcp_socket.async_wait(asio::socket_base::wait_type::wait_write, std::bind(&CurlMulti::AsioSocketActionCallback, this, action, s, socket_data, _1));
         }
 
         CheckMultiInfo();
@@ -223,7 +239,7 @@ void CurlMulti::CheckMultiInfo()
 
     CURL* easy;
     CURLcode res;
-    
+
     while ((msg = curl_multi_info_read(curl_multi_, &msgs_left)))
     {
         if (msg->msg == CURLMSG_DONE)
@@ -237,22 +253,20 @@ void CurlMulti::CheckMultiInfo()
 
 void CurlMulti::SetSock(int act, curl_socket_t s, SocketData* socket_data)
 {
-    asio::ip::tcp::socket* tcp_socket = nullptr;
-
     auto it = socket_map_.find(s);
     if (it == socket_map_.end())
-        throw std::runtime_error("socket is not opened, invalid state");
-    else
-        tcp_socket = it->second;
+        throw std::runtime_error("Invalid socket " + s);
+
+    asio::ip::tcp::socket& tcp_socket = it->second;
 
     if (socket_data->previous_action != CURL_POLL_NONE && act != socket_data->previous_action)
-        tcp_socket->cancel();
+        tcp_socket.cancel();
 
     if (act & CURL_POLL_IN)
-        tcp_socket->async_wait(asio::socket_base::wait_type::wait_read, std::bind(&CurlMulti::AsioSocketActionCallback, this, act, s, socket_data, _1));
+        tcp_socket.async_wait(asio::socket_base::wait_type::wait_read, std::bind(&CurlMulti::AsioSocketActionCallback, this, act, s, socket_data, _1));
 
     if (act & CURL_POLL_OUT)
-        tcp_socket->async_wait(asio::socket_base::wait_type::wait_write, std::bind(&CurlMulti::AsioSocketActionCallback, this, act, s, socket_data, _1));
-    
+        tcp_socket.async_wait(asio::socket_base::wait_type::wait_write, std::bind(&CurlMulti::AsioSocketActionCallback, this, act, s, socket_data, _1));
+
     socket_data->previous_action = act;
 }

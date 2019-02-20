@@ -2,11 +2,13 @@
 #define _CURL_MULTI_CLASS_H_
 
 #include <map>
+#include <ares.h>
 #include "asio_poller.h"
 #include "curl_class.h"
 
 struct SocketData
 {
+    bool is_ares_socket = false;
     int previous_action = CURL_POLL_NONE; // CURL_POLL_IN, CURL_POLL_OUT, etc
 };
 
@@ -24,8 +26,6 @@ public:
     curl_socket_t CurlOpenSocketCallback(curlsocktype purpose, struct curl_sockaddr *address);
     int CurlCloseSocketCallback(curl_socket_t item);
 
-    //float get_next_call() const { return 0; }
-    //asio::io_service& get_io_service() { return io_service_; }
     int CurlSocketCallback(CURL *easy, curl_socket_t s, int what, void *socketp);
     int CurlTimerCallback(CURLM *multi, long timeout_ms);
 
@@ -40,7 +40,7 @@ private:
     CURLM* curl_multi_;
     AsioPoller& asio_poller_;
     std::map<CURL*, CurlMulti::CurlPerformComplete> curl_map_;
-    std::map<curl_socket_t, asio::ip::tcp::socket*> socket_map_;
+    std::map<curl_socket_t, asio::ip::tcp::socket> socket_map_;
     int running_handles_;
 };
 

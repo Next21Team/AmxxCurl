@@ -12,6 +12,9 @@ public:
 
     void Poll();
 
+    asio::ip::tcp::socket CreateTcpSocket();
+    asio::ip::tcp::socket WrapTcpSocket(const asio::detail::socket_type& native_socket, const asio::ip::tcp::socket::protocol_type protocol);
+
     asio::io_context& get_io_context() { return io_context_; }
     asio::steady_timer& get_timer() { return timer_; }
 
