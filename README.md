@@ -14,32 +14,23 @@ Download latest version [here](https://github.com/Polarhigh/AmxxCurl/releases).
 
 You must have installed the latest version premake5. ([Get it here](https://github.com/premake/premake-core))
 
-Also you should put all dependent libraries in deps/Release/lib derictory, for windows it zlib_a.lib and libcurl_a.lib. For linux libcrypro.a, libssl.a, libcurl.a and libz.a. And related includes in deps/Release/include.
-
 ## Windows
 
-First, set the environment variables HLSDK and METAMOD.
+Generate Visual Studio project:
 
-Then, generate Visual Studio project:
+    premake5 vs2017
 
-    premake5 vs2015
+_You may try generate project for another Visual Studio version._
 
-_You may try generate project for another Visual Studio version, but only vs2015 was tested._
-
-Now open solution and compile it)
+Open solution and compile it)
 
 ## Linux
 
-First, set the environment variables:
-
-    export HLSDK=~/path_to/halflife
-    export METAMOD=~/path_to/metamod-hl1/metamod
-
-Then, call premake5 for generate Makefile:
+Generate Makefile:
 
     premake5 gmake
 
-And now compile:
+And compile it:
 
     cd build/gmake
     make
