@@ -1,7 +1,7 @@
 #ifndef _CURL_MULTI_CLASS_H_
 #define _CURL_MULTI_CLASS_H_
 
-#include <map>
+#include <unordered_map>
 #include "asio_poller.h"
 #include "curl_class.h"
 
@@ -38,9 +38,11 @@ private:
 private:
     CURLM* curl_multi_;
     AsioPoller& asio_poller_;
-    std::map<CURL*, CurlMulti::CurlPerformComplete> curl_map_;
-    std::map<curl_socket_t, asio::ip::tcp::socket> socket_map_;
+    std::unordered_map<CURL*, CurlMulti::CurlPerformComplete> curl_map_;
+    std::unordered_map<curl_socket_t, asio::ip::tcp::socket> socket_map_;
     int running_handles_;
+
+    bool socket_removed_;
 };
 
 #endif // _CURL_MULTI_CLASS_H_

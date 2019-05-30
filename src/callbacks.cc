@@ -29,8 +29,9 @@ void ServerDeactivate()
 {
     AmxCurlManager& manager = AmxCurlController::Instance().get_curl_manager();
 
-    manager.TryInterruptAllTransfers();
-    manager.WaitAllTransfers();
+    //manager.TryInterruptAllTransfers();
+    while(!manager.IsAllTransfersCompleted())
+        AmxCurlController::Instance().get_asio_poller().Poll();
     manager.RemoveAllTasks();
 
     SET_META_RESULT(MRES_IGNORED);

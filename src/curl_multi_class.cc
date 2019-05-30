@@ -7,6 +7,8 @@
 #define DEBUG_LOG(f_, ...) 
 #endif
 
+const char* whatstr[] = { "none", "IN", "OUT", "INOUT", "REMOVE" };
+
 int CurlSocketCallbackStatic(CURL* easy, curl_socket_t s, int what, void* userp, void* socketp)
 {
     return static_cast<CurlMulti*>(userp)->CurlSocketCallback(easy, s, what, socketp);
@@ -94,8 +96,7 @@ curl_socket_t CurlMulti::CurlOpenSocketCallback(curlsocktype purpose, curl_socka
 
 int CurlMulti::CurlCloseSocketCallback(curl_socket_t item)
 {
-    auto it = socket_map_.find(item);
-    if (it != socket_map_.end())
+    if (socket_map_.find(item) != socket_map_.end())
     {
         socket_map_.erase(item);
     }
@@ -107,7 +108,6 @@ int CurlMulti::CurlCloseSocketCallback(curl_socket_t item)
 
 int CurlMulti::CurlSocketCallback(CURL* easy, curl_socket_t s, int what, void* socketp)
 {
-    const char* whatstr[] = { "none", "IN", "OUT", "INOUT", "REMOVE" };
     DEBUG_LOG("Curl | CurlSocketCallback: socket=%d; what=%s; sockp=%d\n", s, whatstr[what], socketp);
 
     SocketData* socketData = (SocketData*)socketp;
@@ -116,12 +116,15 @@ int CurlMulti::CurlSocketCallback(CURL* easy, curl_socket_t s, int what, void* s
     {
         if (socketData != nullptr)
         {
-            if (socketData->is_ares_socket)
+            if (socket_map_.find(s) != socket_map_.end())
             {
-                auto it = socket_map_.find(s);
-                if (it != socket_map_.end())
+                socket_map_.at(s).cancel();
+
+                if (socketData->is_ares_socket)
                     socket_map_.erase(s);
             }
+
+            socket_removed_ = true;
             delete socketData;
         }
     }
@@ -131,8 +134,7 @@ int CurlMulti::CurlSocketCallback(CURL* easy, curl_socket_t s, int what, void* s
         {
             socketData = new SocketData;
 
-            auto it = socket_map_.find(s);
-            if (it == socket_map_.end())
+            if (socket_map_.find(s) == socket_map_.end())
             {
                 socketData->is_ares_socket = true;
 
@@ -178,23 +180,21 @@ int CurlMulti::CurlTimerCallback(CURLM* multi, long timeout_ms)
 // calls by asio when data r/w is ready
 void CurlMulti::AsioSocketActionCallback(int action, curl_socket_t s, SocketData* socket_data, const asio::error_code& error)
 {
-    if (error)
-    {
-        DEBUG_LOG("Asio cb | socket error\n", error);
-        return;
-    }
-
     if (socket_map_.count(s) == 0)
     {
-        // TODO log already closed
         return;
     }
 
-    DEBUG_LOG("Asio cb | socket triggered\n");
+    DEBUG_LOG("Asio cb | socket triggered; socket: %d; is_ares_socket: %d; action: %s; prev_action: %s\n", s, socket_data->is_ares_socket, whatstr[action], whatstr[socket_data->previous_action]);
 
     if (action == socket_data->previous_action || socket_data->previous_action == CURL_POLL_INOUT)
     {
-        curl_multi_socket_action(curl_multi_, s, action, &running_handles_);
+        if (error)
+            action = CURL_CSELECT_ERR;
+
+        socket_removed_ = false;
+
+        CURLMcode rc = curl_multi_socket_action(curl_multi_, s, action, &running_handles_);
 
         if (running_handles_ <= 0)
         {
@@ -202,7 +202,12 @@ void CurlMulti::AsioSocketActionCallback(int action, curl_socket_t s, SocketData
             DEBUG_LOG("Cancel timer (no more handles)\n");
         }
 
-        if (socket_map_.find(s) != socket_map_.end() && action == socket_data->previous_action || socket_data->previous_action == CURL_POLL_INOUT)
+        CheckMultiInfo();
+
+        if (!socket_removed_ 
+            && !error 
+            && socket_map_.find(s) != socket_map_.end()
+            && (action == socket_data->previous_action || socket_data->previous_action == CURL_POLL_INOUT))
         {
             auto& tcp_socket = socket_map_.find(s)->second;
 
@@ -212,8 +217,6 @@ void CurlMulti::AsioSocketActionCallback(int action, curl_socket_t s, SocketData
             if (action & CURL_POLL_OUT)
                 tcp_socket.async_wait(asio::socket_base::wait_type::wait_write, std::bind(&CurlMulti::AsioSocketActionCallback, this, action, s, socket_data, _1));
         }
-
-        CheckMultiInfo();
     }
 }
 
@@ -259,14 +262,31 @@ void CurlMulti::SetSock(int act, curl_socket_t s, SocketData* socket_data)
 
     asio::ip::tcp::socket& tcp_socket = it->second;
 
-    if (socket_data->previous_action != CURL_POLL_NONE && act != socket_data->previous_action)
-        tcp_socket.cancel();
-
-    if (act & CURL_POLL_IN)
-        tcp_socket.async_wait(asio::socket_base::wait_type::wait_read, std::bind(&CurlMulti::AsioSocketActionCallback, this, act, s, socket_data, _1));
-
-    if (act & CURL_POLL_OUT)
-        tcp_socket.async_wait(asio::socket_base::wait_type::wait_write, std::bind(&CurlMulti::AsioSocketActionCallback, this, act, s, socket_data, _1));
+    if (act == CURL_POLL_IN)
+    {
+        if (socket_data->previous_action != CURL_POLL_IN && socket_data->previous_action != CURL_POLL_INOUT)
+        {
+            tcp_socket.async_wait(asio::socket_base::wait_type::wait_read, std::bind(&CurlMulti::AsioSocketActionCallback, this, act, s, socket_data, _1));
+        }
+    }
+    else if (act == CURL_POLL_OUT)
+    {
+        if (socket_data->previous_action != CURL_POLL_OUT && socket_data->previous_action != CURL_POLL_INOUT)
+        {
+            tcp_socket.async_wait(asio::socket_base::wait_type::wait_write, std::bind(&CurlMulti::AsioSocketActionCallback, this, act, s, socket_data, _1));
+        }
+    }
+    else if (act == CURL_POLL_INOUT)
+    {
+        if (socket_data->previous_action != CURL_POLL_IN && socket_data->previous_action != CURL_POLL_INOUT)
+        {
+            tcp_socket.async_wait(asio::socket_base::wait_type::wait_read, std::bind(&CurlMulti::AsioSocketActionCallback, this, act, s, socket_data, _1));
+        }
+        if (socket_data->previous_action != CURL_POLL_OUT && socket_data->previous_action != CURL_POLL_INOUT)
+        {
+            tcp_socket.async_wait(asio::socket_base::wait_type::wait_write, std::bind(&CurlMulti::AsioSocketActionCallback, this, act, s, socket_data, _1));
+        }
+    }
 
     socket_data->previous_action = act;
 }

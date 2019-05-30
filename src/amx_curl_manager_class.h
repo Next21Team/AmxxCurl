@@ -40,18 +40,7 @@ public:
 
     AmxCurlHandle CreateCurl(AMX* amx)
     {
-        AmxCurlHandle handle = amx_curl_.size() + 1;
-        if (!free_handles_.empty())
-        {
-            handle = free_handles_.front();
-            free_handles_.pop();
-        }
-        else
-        {
-            while (amx_curl_.count(handle) > 1)
-                handle++;
-        }
-
+        AmxCurlHandle handle = GetCurlHandle();
         amx_curl_.emplace(handle, AmxCurl(amx, curl_multi_));
         
         return handle;
@@ -61,9 +50,8 @@ public:
     {
         CheckHandle(handle);
 
-        //curl_multi_.RemoveCurl(amx_curl_.at(handle).get_curl());
         amx_curl_.erase(handle);
-        free_handles_.push(handle);
+        FreeCurlHandle(handle);
     }
 
     void RemoveAllTasks()
@@ -143,12 +131,37 @@ public:
         });
     }
 
-    void WaitAllTransfers()
+    bool IsAllTransfersCompleted()
     {
-        // TODO наверное просто заблокироваться пока curl multi все не закончит
+        return std::all_of(amx_curl_.begin(), amx_curl_.end(), [](auto& pair)
+        {
+            return !pair.second.get_is_transfer_in_progress();
+        });
     }
 
 private:
+    AmxCurlHandle GetCurlHandle()
+    {
+        AmxCurlHandle handle = amx_curl_.size() + 1;
+        if (!free_handles_.empty())
+        {
+            handle = free_handles_.front();
+            free_handles_.pop();
+        }
+        else
+        {
+            while (amx_curl_.count(handle) > 1)
+                handle++;
+        }
+
+        return handle;
+    }
+    
+    void FreeCurlHandle(AmxCurlHandle handle)
+    {
+        free_handles_.push(handle);
+    }
+
     void CheckHandle(AmxCurlHandle handle) const
     {
         if (amx_curl_.count(handle) == 0)

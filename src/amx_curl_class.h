@@ -40,11 +40,13 @@ public:
         amx_callback_data_ = data;
         amx_callback_data_len_ = data_len;
         task_handle_ = task_handle;
+        is_transfer_in_progress_ = true;
 
         CurlMulti::CurlPerformComplete callback = std::bind(&AmxCurl::OnPerformComplete, this, std::placeholders::_1);
         curl_multi_.AddCurl(curl_, std::move(callback));
     }
 
+    bool get_is_transfer_in_progress() { return is_transfer_in_progress_; }
     Curl& get_curl() { return curl_; }
 
     CurlCallbackAmx& get_curl_callback_amx() const { return *curl_callback_; }
@@ -53,6 +55,8 @@ private:
     void OnPerformComplete(CURLcode result)
     {
         curl_multi_.RemoveCurl(curl_);
+
+        is_transfer_in_progress_ = false;
 
         cell* cb_data = amx_callback_data_;
         int cb_data_len = amx_callback_data_len_;
@@ -84,6 +88,8 @@ private:
     int task_handle_;
     cell* amx_callback_data_;
     int amx_callback_data_len_;
+
+    bool is_transfer_in_progress_;
 };
 
 #endif // _AMX_CURL_CLASS_H_
