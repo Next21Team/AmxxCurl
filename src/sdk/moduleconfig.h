@@ -15,7 +15,7 @@
  *   to add multiple entries.
  */
 #define MODULE_NAME "CURL AMXX"
-#define MODULE_VERSION "1.1.0a"
+#define MODULE_VERSION "1.1.0"
 #define MODULE_AUTHOR "Polarhigh"
 #define MODULE_URL "https://github.com/Polarhigh/AmxxCurl"
 #define MODULE_LOGTAG "CURL"
