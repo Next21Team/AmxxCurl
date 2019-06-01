@@ -6,7 +6,7 @@ Download latest version [here](https://github.com/Polarhigh/AmxxCurl/releases).
 
 # Roadmap
 
-1. Improving performance: using asio, curl multi interface and c-areas.
+1. ~~Improving performance: using asio, curl multi interface and c-areas.~~
 2. Adding simple interfaces for most common cases.
 3. Improving build scripts.
 
