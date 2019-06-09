@@ -118,13 +118,14 @@ int CurlMulti::CurlSocketCallback(CURL* easy, curl_socket_t s, int what, void* s
         {
             if (socket_map_.find(s) != socket_map_.end())
             {
-                socket_map_.at(s).cancel();
-
                 if (socketData->is_ares_socket)
+                {
+                    socket_map_.at(s).release();
                     socket_map_.erase(s);
+                }
             }
 
-            socket_removed_ = true;
+            removed_sockets_.emplace(s);
             delete socketData;
         }
     }
@@ -142,13 +143,13 @@ int CurlMulti::CurlSocketCallback(CURL* easy, curl_socket_t s, int what, void* s
                 socket_map_.emplace(s, std::move(tcp_socket));
             }
 
-            DEBUG_LOG("Curl | Adding SocketData: what=%s; is ares socket: %i\n", whatstr[socketData->previous_action], socketData->is_ares_socket);
+            DEBUG_LOG("       Adding SocketData: what=%s; is ares socket: %i\n", whatstr[socketData->previous_action], socketData->is_ares_socket);
             curl_multi_assign(curl_multi_, s, socketData);
         }
 
         if (what != CURL_POLL_NONE)
         {
-            DEBUG_LOG("Curl | Changing action from %s to %s\n", whatstr[socketData->previous_action], whatstr[what]);
+            DEBUG_LOG("       Changing action from %s to %s\n", whatstr[socketData->previous_action], whatstr[what]);
             SetSock(what, s, socketData);
         }
     }
@@ -186,26 +187,29 @@ void CurlMulti::AsioSocketActionCallback(int action, curl_socket_t s, SocketData
     }
 
     DEBUG_LOG("Asio cb | socket triggered; socket: %d; is_ares_socket: %d; action: %s; prev_action: %s\n", s, socket_data->is_ares_socket, whatstr[action], whatstr[socket_data->previous_action]);
+    //DEBUG_LOG("Asio cb | socket triggered; socket: %d; is_ares_socket: %d\n", s, socket_data->is_ares_socket);
 
-    if (action == socket_data->previous_action || socket_data->previous_action == CURL_POLL_INOUT)
+    if (error || action == socket_data->previous_action || socket_data->previous_action == CURL_POLL_INOUT)
     {
         if (error)
             action = CURL_CSELECT_ERR;
 
-        socket_removed_ = false;
-
+        removed_sockets_.clear();
         CURLMcode rc = curl_multi_socket_action(curl_multi_, s, action, &running_handles_);
+
+        CheckMultiInfo();
 
         if (running_handles_ <= 0)
         {
             asio_poller_.get_timer().cancel();
-            DEBUG_LOG("Cancel timer (no more handles)\n");
+            DEBUG_LOG("          cancel timer (no more handles)\n");
         }
-
-        CheckMultiInfo();
-
-        if (!socket_removed_ 
-            && !error 
+        
+        /* keep on watching.
+         * the socket may have been closed and/or socket_data may have been changed
+         * in curl_multi_socket_action(), so check them both */
+        if (   !error
+            && !removed_sockets_.count(s)
             && socket_map_.find(s) != socket_map_.end()
             && (action == socket_data->previous_action || socket_data->previous_action == CURL_POLL_INOUT))
         {
@@ -249,9 +253,13 @@ void CurlMulti::CheckMultiInfo()
         {
             easy = msg->easy_handle;
             res = msg->data.result;
-            curl_map_.at(easy)(res);
+
+            if (curl_map_.count(easy))
+                curl_map_[easy](res);
         }
     }
+
+    return;
 }
 
 void CurlMulti::SetSock(int act, curl_socket_t s, SocketData* socket_data)
