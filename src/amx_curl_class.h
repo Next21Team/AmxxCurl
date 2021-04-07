@@ -1,6 +1,7 @@
 #ifndef _AMX_CURL_CLASS_H_
 #define _AMX_CURL_CLASS_H_
 
+#include <functional>
 #include "curl_class.h"
 #include "amx_curl_callback_class.h"
 
