@@ -1,4 +1,5 @@
 #include "curl_multi_class.h"
+#include <functional>
 
 #ifdef AMXXCURL_DEBUG_LOG_ENABLE
 #include <cstdio>
